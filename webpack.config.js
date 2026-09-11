@@ -47,6 +47,7 @@ const config = {
     isDevelopment ? undefined : new MiniCssExtractPlugin({ filename: '[name].css' }),
     new HtmlWebpackPlugin({
       templateContent: `
+      <style>html,body{margin:0;padding:0}</style>
       <body></body>
       <script type="text/javascript">
       const urlSearchParams = new URLSearchParams(window.location.search);

@@ -12,7 +12,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 6px 0;
+  padding: 10px;
+  justify-content: flex-end;
+  border: 1px solid var(--rr-tts-border);
+  border-radius: 10px;
   font-size: 13px;
 }
 
@@ -39,8 +42,10 @@
 .rr-tts-panel {
   width: 100%;
   max-width: 100%;
-  height: min(680px, 70vh);
-  height: min(680px, 70dvh);
+  /* The popup host has a numeric height. Fill its actual viewport, including
+     when RemNote constrains it on small screens; never combine this with auto. */
+  height: min(560px, 100vh);
+  height: min(560px, 100dvh);
   max-height: 100%;
   display: flex;
   flex-direction: column;

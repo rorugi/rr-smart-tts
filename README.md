@@ -1,7 +1,12 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.1
+## What's new in 0.4.2
+
+- Fixed the settings popup shrinking to zero by giving its host a stable height.
+- Front / Back / Stop float on the right during review and close when review ends.
+
+## Added in 0.4.1
 
 - Front / Back / Stop are below the card, alongside the standard TTS location.
 - Settings scroll within the popup while Save and Close remain visible.
@@ -86,7 +91,7 @@ For cloze cards, RemNote's cloze question is treated as the physical front and t
 
 ## Flashcard controls
 
-During review, RR Smart TTS renders controls below the flashcard:
+During review, RR Smart TTS floats controls on the right, above the bottom answer area:
 
 - **Front** — speak the semantic front of the card.
 - **Back** — speak the semantic back of the card.

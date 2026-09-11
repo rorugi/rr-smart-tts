@@ -10,7 +10,7 @@ const originalLoad = Module._load;
 Module._load = function (name, ...args) {
   if (name === '@remnote/plugin-sdk') return {
     declareIndexPlugin: (onActivate) => { activate = onActivate; },
-    WidgetLocation: { FlashcardUnder: 'FlashcardUnder', Popup: 'Popup' },
+    WidgetLocation: { FloatingWidget: 'FloatingWidget', Popup: 'Popup' },
     PluginCommandMenuLocation: { QueueMenu: 'QueueMenu' },
     usePlugin: () => api,
     renderWidget: (component) => { if (component.name === 'ConfigPopup') Popup = component; else Toolbar = component; },
@@ -174,15 +174,16 @@ test('toolbar completion clears old card and waits for the next load event', asy
   assert.equal(h.spoken[1].text, 'new card');
 });
 
-test('registers below-card controls and a popup without a fixed oversized height', async () => {
+test('registers floating controls and a stable numeric popup height', async () => {
   setup();
   const registered = [];
   api.app.registerWidget = async (...args) => registered.push(args);
   api.app.registerMenuItem = async () => {};
   api.app.registerCommand = async () => {};
+  api.window = { openFloatingWidget: async () => 'floating', isFloatingWidgetOpen: async () => true, closeFloatingWidget: async () => {} };
   await activate(api);
-  assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'FlashcardUnder');
-  assert.equal(registered.find(([name]) => name === 'config_popup')[2].dimensions.height, 'auto');
+  assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'FloatingWidget');
+  assert.equal(registered.find(([name]) => name === 'config_popup')[2].dimensions.height, 560);
 });
 
 test('Save and Close stay outside the scrolling settings body', async () => {
