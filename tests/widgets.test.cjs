@@ -10,7 +10,7 @@ const originalLoad = Module._load;
 Module._load = function (name, ...args) {
   if (name === '@remnote/plugin-sdk') return {
     declareIndexPlugin: (onActivate) => { activate = onActivate; },
-    WidgetLocation: { FloatingWidget: 'FloatingWidget', Popup: 'Popup', QueueToolbar: 'QueueToolbar', FlashcardUnder: 'FlashcardUnder' },
+    WidgetLocation: { QueueBelowTopBar: 'QueueBelowTopBar', FloatingWidget: 'FloatingWidget', Popup: 'Popup', QueueToolbar: 'QueueToolbar', FlashcardUnder: 'FlashcardUnder' },
     PluginCommandMenuLocation: { QueueMenu: 'QueueMenu' },
     usePlugin: () => api,
     renderWidget: (component) => { if (component.name === 'ConfigPopup') Popup = component; else Toolbar = component; },
@@ -165,7 +165,7 @@ test('toolbar completion clears old card and waits for the next load event', asy
   await mount(Toolbar);
   assert.equal(h.spoken.length, 1);
   await act(async () => { h.emit('complete'); await tick(); });
-  assert.equal(root.root.findAllByType('button').length, 0);
+  assert.equal(button('🔊 Front').props.disabled, true);
   assert.equal(h.spoken.length, 1);
   h.rems.card.text = ['new card'];
   h.setCurrent({ _id: 'b', getRem: async () => h.rems.card, getType: async () => 'forward' });
@@ -184,9 +184,9 @@ test('removes legacy locations and registers intrinsically sized popup', async (
   api.app.registerCommand = async () => {};
   api.window = { openFloatingWidget: async () => 'floating', isFloatingWidgetOpen: async () => true, closeFloatingWidget: async () => {} };
   await activate(api);
-  assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'FloatingWidget');
+  assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'QueueBelowTopBar');
   assert.equal(registered.find(([name]) => name === 'config_popup')[2].dimensions.height, 'auto');
-  assert.deepEqual(removed, [['smart_tts', 'QueueToolbar'], ['smart_tts', 'FlashcardUnder'], ['config_popup', 'Popup']]);
+  assert.deepEqual(removed, [['smart_tts', 'QueueToolbar'], ['smart_tts', 'FlashcardUnder'], ['config_popup', 'Popup'], ['smart_tts', 'FloatingWidget']]);
 });
 
 test('Save and Close stay outside the scrolling settings body', async () => {
@@ -196,4 +196,30 @@ test('Save and Close stay outside the scrolling settings body', async () => {
   assert.ok(footer.findAllByType('button').includes(button('Save')));
   assert.ok(footer.findAllByType('button').includes(button('Close')));
   assert.ok(!body.findAllByType('button').includes(button('Save')));
+});
+
+for (const type of ['forward', 'backward']) {
+  test('review mount autoplays physical sides without floating APIs: ' + type, async () => {
+    const h = setup();
+    h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalFront: true, autoPlayPhysicalBack: true, autoPlayQuestion: false, autoPlayAnswer: false });
+    h.setCurrent({ _id: 'physical', getRem: async () => h.rems.card, getType: async () => type });
+    await mount(Toolbar);
+    assert.equal(button('🔊 Front').props.disabled, false);
+    assert.equal(button('🔊 Back').props.disabled, false);
+    assert.equal(h.spoken.length, 1);
+    assert.equal(h.spoken[0].text, type === 'forward' ? 'card' : 'back');
+    await act(async () => { h.emit('reveal'); await tick(); });
+    assert.equal(h.spoken.length, 2);
+    assert.equal(h.spoken[1].text, type === 'forward' ? 'back' : 'card');
+    await act(async () => { h.emit('reveal'); await tick(); });
+    assert.equal(h.spoken.length, 2);
+  });
+}
+test('card load failures keep controls and recovery visible', async () => {
+  setup(); api.queue.getCurrentCard = async () => { throw new Error('offline'); };
+  await mount(Toolbar);
+  assert.equal(button('🔊 Front').props.disabled, true);
+  assert.ok(button('■ Stop'));
+  assert.ok(button('Retry'));
+  assert.match(root.root.findByProps({ role: 'status' }).children.join(''), /Could not load/);
 });
