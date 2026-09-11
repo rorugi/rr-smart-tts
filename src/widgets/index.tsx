@@ -13,11 +13,11 @@ async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardI
 
 async function onActivate(plugin: ReactRNPlugin) {
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueToolbar);
-  await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FlashcardUnder);
+  await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueBelowTopBar);
   await plugin.app.unregisterWidget('config_popup', WidgetLocation.Popup);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FloatingWidget);
   await plugin.app.registerCSS('rr-smart-tts-floating-position', '');
-  await plugin.app.registerWidget('smart_tts', WidgetLocation.QueueBelowTopBar, {
+  await plugin.app.registerWidget('smart_tts', WidgetLocation.FlashcardUnder, {
     dimensions: { height: 'auto', width: '100%' },
   });
 
