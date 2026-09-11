@@ -209,10 +209,11 @@ function ConfigPopup() {
     );
   };
 
-  if (!data) return <div className="rr-tts-panel">Loading RR Smart TTS settings…</div>;
+  if (!data) return <div className="rr-tts-panel-loading">Loading RR Smart TTS settings…</div>;
 
   return (
     <div className="rr-tts-panel">
+      <div className="rr-tts-panel-body">
       <h1 className="rr-tts-title">RR Smart TTS</h1>
       <p className="rr-tts-subtitle">
         Filter flashcard text before it is spoken. Settings are stored by stable RemNote IDs, so renaming a document or folder does not lose its configuration.
@@ -325,8 +326,9 @@ function ConfigPopup() {
         </div>
       </div>
       </fieldset>
+      </div>
 
-      <div className="rr-tts-row rr-tts-section">
+      <div className="rr-tts-row rr-tts-panel-footer">
         <button
           className="rr-tts-button rr-tts-button-primary"
           disabled={!ready || invalidRegex.length > 0}

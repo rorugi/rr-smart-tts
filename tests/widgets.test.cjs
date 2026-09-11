@@ -4,11 +4,14 @@ const React = require('react');
 const Renderer = require('react-test-renderer');
 const Module = require('node:module');
 const { act } = Renderer;
-let api, Popup, Toolbar, root;
+let api, Popup, Toolbar, activate, root;
 const events = { QueueLoadCard: 'load', QueueCompleteCard: 'complete', QueueEnter: 'enter', QueueExit: 'exit', RevealAnswer: 'reveal' };
 const originalLoad = Module._load;
 Module._load = function (name, ...args) {
   if (name === '@remnote/plugin-sdk') return {
+    declareIndexPlugin: (onActivate) => { activate = onActivate; },
+    WidgetLocation: { FlashcardUnder: 'FlashcardUnder', Popup: 'Popup' },
+    PluginCommandMenuLocation: { QueueMenu: 'QueueMenu' },
     usePlugin: () => api,
     renderWidget: (component) => { if (component.name === 'ConfigPopup') Popup = component; else Toolbar = component; },
     useRunAsync: (fn, deps) => {
@@ -30,6 +33,7 @@ Module._load = function (name, ...args) {
 require.extensions['.css'] = () => {};
 require('../src/widgets/config_popup');
 require('../src/widgets/smart_tts');
+require('../src/widgets/index');
 Module._load = originalLoad;
 
 const tick = () => new Promise(setImmediate);
@@ -168,4 +172,24 @@ test('toolbar completion clears old card and waits for the next load event', asy
   await act(async () => { h.emit('load'); await tick(); });
   assert.equal(h.spoken.length, 2);
   assert.equal(h.spoken[1].text, 'new card');
+});
+
+test('registers below-card controls and a popup without a fixed oversized height', async () => {
+  setup();
+  const registered = [];
+  api.app.registerWidget = async (...args) => registered.push(args);
+  api.app.registerMenuItem = async () => {};
+  api.app.registerCommand = async () => {};
+  await activate(api);
+  assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'FlashcardUnder');
+  assert.equal(registered.find(([name]) => name === 'config_popup')[2].dimensions.height, 'auto');
+});
+
+test('Save and Close stay outside the scrolling settings body', async () => {
+  setup(); await mount(Popup);
+  const footer = root.root.findByProps({ className: 'rr-tts-row rr-tts-panel-footer' });
+  const body = root.root.findByProps({ className: 'rr-tts-panel-body' });
+  assert.ok(footer.findAllByType('button').includes(button('Save')));
+  assert.ok(footer.findAllByType('button').includes(button('Close')));
+  assert.ok(!body.findAllByType('button').includes(button('Save')));
 });

@@ -164,6 +164,35 @@ test('missing speech API reports an actionable status', () => {
   assert.match(status, /not available/);
 });
 
+test('ordinary back still plays when child lookup rejects', async () => {
+  const rem = { backText: ['house [hint]'], getChildrenRem: async () => { throw new Error('RPC unavailable'); } };
+  assert.equal(await getSemanticBackText(plugin, rem, 'forward', DEFAULT_CONFIG), 'house');
+});
+test('ordinary back still plays when child classification rejects', async () => {
+  const rem = { backText: ['house'], getChildrenRem: async () => [
+    { text: ['private note'], isCardItem: async () => { throw new Error('unsupported'); } },
+  ] };
+  assert.equal(await getSemanticBackText(plugin, rem, 'forward', DEFAULT_CONFIG), 'house');
+});
+test('a serialized ordinary Rem can speak without child methods', async () => {
+  const rem = { _id: 'plain', backText: ['answer'] };
+  assert.equal(await getSemanticBackText(plugin, rem, 'forward', DEFAULT_CONFIG), 'answer');
+});
+test('failed multiline lookups cannot resurrect filtered-out answer text', async () => {
+  const rem = { backText: [{ i: 'm', l: true, text: 'hidden' }], getChildrenRem: async () => { throw new Error('unsupported'); } };
+  assert.equal(await getSemanticBackText(plugin, rem, 'forward', DEFAULT_CONFIG), '');
+});
+test('empty known child list does not call optional multiline APIs', async () => {
+  const rem = { children: [], backText: ['answer'], getChildrenRem: async () => { assert.fail('unneeded RPC'); } };
+  assert.equal(await getSemanticBackText(plugin, rem, 'forward', DEFAULT_CONFIG), 'answer');
+});
+test('a voice engine exception is reported as playback failure, not text failure', async () => {
+  global.speechSynthesis.speak = () => { throw new Error('voice unavailable'); };
+  let status;
+  await speakPreparedText(async () => 'answer', DEFAULT_CONFIG, 'back', (s) => { status = s; });
+  assert.match(status, /back voice could not start/);
+  assert.doesNotMatch(status, /read|prepare/);
+});
 const ctx = (cardId = 'a', options = {}) => ({
   cardId, rem: { _id: cardId }, cardType: 'forward', revealed: false,
   config: clampConfig({ autoPlayQuestion: true, autoPlayAnswer: true }), ...options,

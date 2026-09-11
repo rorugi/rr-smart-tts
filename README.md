@@ -1,7 +1,14 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.0
+## What's new in 0.4.1
+
+- Front / Back / Stop are below the card, alongside the standard TTS location.
+- Settings scroll within the popup while Save and Close remain visible.
+- Ordinary back answers remain playable if optional multiline lookups fail.
+- Voice-engine errors are distinguished from card-text errors.
+
+## Added in 0.4.0
 
 - Separate front/back voices and language preferences, including backward cards.
 - Stop, card completion, queue exit, and newer requests cancel pending speech.
@@ -109,6 +116,14 @@ Invalid expressions are highlighted and cannot be saved.
 RR Smart TTS is intended to replace the normal TTS playback for cards where filtering is needed. If both plugins auto-play the same card, both may attempt to use the browser speech engine. Disable auto-play in the standard RemNote TTS plugin for those cards/decks.
 
 ## Development
+
+### Repository source versus installation ZIP
+
+The GitHub repository contains the editable source: `src/`, `public/`, tests, documentation, `package.json`, the dependency lockfile, and build configuration. The `public/` folder holds static plugin metadata/assets; it is not a separate deployed website.
+
+Building generates `dist/` and `PluginZip.zip`. The ZIP contains compiled JavaScript, CSS, a manifest, and documentation for RemNote to load. Its extracted contents are not the source project and should not replace the repository. Generated build files, ZIPs, and `node_modules/` are excluded from Git; distribute the installation ZIP through a GitHub Release or CI artifact.
+
+### Build from source
 
 Requirements:
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1
+
+- Moved Front / Back / Stop into FlashcardUnder, the same below-card slot as RemNote's standard TTS controls.
+- Replaced the oversized popup with a bounded, responsive panel, independently scrolling settings, and a persistent Save / Close footer.
+- Kept ordinary back text playable when optional multiline API calls fail; retained confirmed multiline answers and filtering.
+- Distinguished speech-engine failures from text extraction failures.
+- Added eight regression checks for placement, footer structure, and back-answer fallback; 50 tests now pass.
+- Documented the difference between repository source files and the compiled installation ZIP.
+
 ## 0.4.0
 
 - Added independent physical front/back voices and languages, with migration from the shared voice setting.

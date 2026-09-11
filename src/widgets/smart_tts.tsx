@@ -50,7 +50,7 @@ function SmartTTSWidget() {
 
   if (!context?.config.enabled) return <></>;
   return (
-    <div className="rr-tts-bar rr-tts-bar-fixed">
+    <div className="rr-tts-bar">
       <button className="rr-tts-button rr-tts-play-button" onClick={() => controller.play('front')}>🔊 Front</button>
       <button className="rr-tts-button rr-tts-play-button" onClick={() => controller.play('back')}>🔊 Back</button>
       <button className="rr-tts-button" onClick={() => { controller.stop(); setStatus('Stopped.'); }}>■ Stop</button>

@@ -63,11 +63,18 @@ export async function speakPreparedText(
 ) {
   stopSpeech();
   const request = generation;
+  let text: string;
   try {
-    const text = await prepare();
-    if (request !== generation) return;
+    text = await prepare();
+  } catch {
+    if (request === generation) { stopSpeech(); report('Could not read the ' + side + ' text. Try Preview current card in settings.'); }
+    return;
+  }
+  if (request !== generation) return;
+  try {
     play(text, config, side, report);
   } catch {
-    if (request === generation) { stopSpeech(); report('Could not prepare speech for this card.'); }
+    stopSpeech();
+    report('The ' + side + ' voice could not start. Try another voice or Automatic for chosen language.');
   }
 }

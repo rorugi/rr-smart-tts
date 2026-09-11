@@ -12,13 +12,13 @@ async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardI
 }
 
 async function onActivate(plugin: ReactRNPlugin) {
-  // QueueToolbar stays with RemNote's fixed review controls instead of scrolling with card content.
-  await plugin.app.registerWidget('smart_tts', WidgetLocation.QueueToolbar, {
+  // Use the same below-card slot as RemNote's standard text-to-speech plugin.
+  await plugin.app.registerWidget('smart_tts', WidgetLocation.FlashcardUnder, {
     dimensions: { height: 'auto', width: 'auto' },
   });
 
   await plugin.app.registerWidget('config_popup', WidgetLocation.Popup, {
-    dimensions: { height: 860, width: 820 },
+    dimensions: { height: 'auto', width: 720 },
   });
 
   await plugin.app.registerMenuItem({
