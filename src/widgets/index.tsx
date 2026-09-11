@@ -5,6 +5,8 @@ import {
   WidgetLocation,
 } from '@remnote/plugin-sdk';
 import '../style.css';
+import { registerControlsPosition } from '../lib/controls_position';
+let detachPosition: (() => void) | undefined;
 import { getConfigScopes, getEffectiveConfig, getScopeConfig, setScopeConfig } from '../lib/config';
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
@@ -12,14 +14,14 @@ async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardI
 }
 
 async function onActivate(plugin: ReactRNPlugin) {
+  detachPosition?.();
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueToolbar);
+  await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FlashcardUnder);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueBelowTopBar);
   await plugin.app.unregisterWidget('config_popup', WidgetLocation.Popup);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FloatingWidget);
   await plugin.app.registerCSS('rr-smart-tts-floating-position', '');
-  await plugin.app.registerWidget('smart_tts', WidgetLocation.FlashcardUnder, {
-    dimensions: { height: 'auto', width: '100%' },
-  });
+  detachPosition = await registerControlsPosition(plugin);
 
   await plugin.app.registerWidget('config_popup', WidgetLocation.Popup, {
     // Measure intrinsic content; no child height depends on the popup viewport.
@@ -68,6 +70,6 @@ async function onActivate(plugin: ReactRNPlugin) {
 
 }
 
-async function onDeactivate(_: ReactRNPlugin) {}
+async function onDeactivate(_: ReactRNPlugin) { detachPosition?.(); detachPosition = undefined; }
 
 declareIndexPlugin(onActivate, onDeactivate);

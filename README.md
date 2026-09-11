@@ -1,7 +1,13 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.5
+## What's new in 0.4.6
+
+- Controls position offers Right (vertical stack), Flashcard Under (horizontal row), and Toolbar.
+- Position applies globally and is saved with Save; existing installations default to Right.
+- Stop is text-only in every layout.
+
+## Added in 0.4.5
 
 - Controls attach directly below the card, aligned right, using outlined speaker icons.
 - Loads from card-scoped IDs instead of global queue state; no startup Retry row.

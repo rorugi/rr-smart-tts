@@ -1,6 +1,7 @@
 import { renderWidget, usePlugin, useRunAsync } from '@remnote/plugin-sdk';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '../style.css';
+import { CONTROLS_POSITION_KEY, ControlsPosition, getControlsPosition } from '../lib/controls_position';
 import {
   ConfigScope,
   DEFAULT_CONFIG,
@@ -24,6 +25,7 @@ const SAMPLE_TEXT = 'घर [ghar] (masculine) means house. {grammar note} This 
 
 function ConfigPopup() {
   const plugin = usePlugin();
+  const [controlsPosition, setControlsPosition] = useState<ControlsPosition>('right');
   const [selectedScopeId, setSelectedScopeId] = useState(GLOBAL_SCOPE_ID);
   const [config, setConfig] = useState<SmartTTSConfig>(DEFAULT_CONFIG);
   const [hasOwnConfig, setHasOwnConfig] = useState(true);
@@ -54,12 +56,14 @@ function ConfigPopup() {
       ? [{ id: GLOBAL_SCOPE_ID, kind: 'global', name: 'Global defaults' } as ConfigScope]
       : await getConfigScopes(plugin, remId);
     const preferred = scopes.find((s) => s.kind === 'document') || scopes.find((s) => s.kind === 'folder') || scopes[0];
-    return { ctx, scopes, preferred };
+    const position = await getControlsPosition(plugin);
+    return { ctx, scopes, preferred, position };
   }, []);
 
   useEffect(() => {
     if (!data?.preferred) return;
     setSelectedScopeId(data.preferred.id);
+    setControlsPosition(data.position);
   }, [data?.preferred?.id]);
 
   useEffect(() => {
@@ -163,6 +167,9 @@ function ConfigPopup() {
         setHasOwnConfig(false);
       } else {
         await setScopeConfig(plugin, selectedScopeId, liveConfig);
+        if (controlsPosition !== await getControlsPosition(plugin)) {
+          await plugin.storage.setSynced(CONTROLS_POSITION_KEY, controlsPosition);
+        }
         if (!mounted.current) return;
         setHasOwnConfig(true);
       }
@@ -242,6 +249,15 @@ function ConfigPopup() {
       <fieldset className="rr-tts-settings" disabled={!ready}>
       <div className="rr-tts-section">
         <h3>Playback</h3>
+        <div className="rr-tts-field">
+          <label htmlFor="controls-position">Controls position</label>
+          <select id="controls-position" className="rr-tts-select" value={controlsPosition} onChange={(e) => setControlsPosition(e.target.value as ControlsPosition)}>
+            <option value="right">Right</option>
+            <option value="under">Flashcard Under</option>
+            <option value="toolbar">Toolbar</option>
+          </select>
+          <div className="rr-tts-scope-note">Applies to all decks. Save to move the controls. Right stacks the buttons vertically.</div>
+        </div>
         <div className="rr-tts-grid">
           <label className="rr-tts-check"><input type="checkbox" checked={config.enabled} onChange={(e) => update('enabled', e.target.checked)} /> Enable RR Smart TTS</label>
           <label className="rr-tts-check"><input type="checkbox" checked={config.autoPlayQuestion} onChange={(e) => update('autoPlayQuestion', e.target.checked)} /> Auto-play question phase</label>
