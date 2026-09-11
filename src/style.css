@@ -35,7 +35,9 @@
 .rr-tts-button-primary:hover { background: var(--rr-tts-accent-dark); }
 .rr-tts-play-button { background: transparent; font-weight: 600; }
 .rr-tts-play-button:hover { background: transparent; border-color: var(--rr-tts-accent); }
-.rr-tts-status { color: var(--rr-tts-muted); font-size: 12px; }
+.rr-tts-status { color: var(--rr-tts-muted); font-size: 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.rr-tts-settings { border: 0; padding: 0; margin: 0; min-width: 0; }
+.rr-tts-button:disabled { opacity: 0.5; cursor: default; }
 
 .rr-tts-panel {
   width: 100%;

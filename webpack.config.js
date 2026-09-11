@@ -52,11 +52,18 @@ const config = {
       const urlSearchParams = new URLSearchParams(window.location.search);
       const queryParams = Object.fromEntries(urlSearchParams.entries());
       const widgetName = queryParams["widgetName"];
-      if (widgetName == undefined) {document.body.innerHTML+="Widget ID not specified."}
+      if (!["index", "smart_tts", "config_popup"].includes(widgetName)) {
+        document.body.textContent = "Unknown or missing widget ID.";
+      } else {
+      ${isProd ? `const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = widgetName + '${SANDBOX_SUFFIX}.css';
+      document.head.appendChild(css);` : ''}
       const s = document.createElement('script');
       s.type = "module";
       s.src = widgetName+"${SANDBOX_SUFFIX}.js";
       document.body.appendChild(s);
+      }
       </script>`,
       filename: 'index.html',
       inject: false,
@@ -66,7 +73,7 @@ const config = {
       banner: (file) => (!file.chunk.name.includes(SANDBOX_SUFFIX) ? 'const IMPORT_META=import.meta;' : ''),
       raw: true,
     }),
-    new CopyPlugin({ patterns: [{ from: 'public', to: '' }, { from: 'README.md', to: '' }] }),
+    new CopyPlugin({ patterns: [{ from: 'public', to: '' }, { from: 'README.md', to: '' }, { from: 'docs', to: 'docs' }] }),
     isDevelopment ? new ReactRefreshWebpackPlugin() : undefined,
   ].filter(Boolean),
 };

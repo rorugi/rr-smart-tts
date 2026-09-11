@@ -4,6 +4,9 @@ import type { RNPlugin } from '@remnote/plugin-sdk';
 // export a public Rem type. Use a local compatibility alias for type checking.
 type RemLike = any;
 
+export type PhysicalSide = 'front' | 'back';
+export type VoicePreference = { name: string; uri: string; language: string };
+
 export type SmartTTSConfig = {
   enabled: boolean;
   autoPlayQuestion: boolean;
@@ -17,6 +20,8 @@ export type SmartTTSConfig = {
   removeCurlyBraces: boolean;
   removeUrls: boolean;
   voiceName: string;
+  frontVoice: VoicePreference;
+  backVoice: VoicePreference;
   rate: number;
   pitch: number;
   volume: number;
@@ -34,6 +39,7 @@ export type ConfigScope = {
 export const GLOBAL_SCOPE_ID = '__global__';
 const GLOBAL_KEY = 'rr-smart-tts:global:v1';
 const SCOPE_PREFIX = 'rr-smart-tts:scope:v1:';
+export const configStorageKey = (scopeId: string) => scopeId === GLOBAL_SCOPE_ID ? GLOBAL_KEY : `${SCOPE_PREFIX}${scopeId}`;
 
 export const DEFAULT_CONFIG: SmartTTSConfig = {
   enabled: true,
@@ -48,6 +54,8 @@ export const DEFAULT_CONFIG: SmartTTSConfig = {
   removeCurlyBraces: true,
   removeUrls: false,
   voiceName: '',
+  frontVoice: { name: '', uri: '', language: '' },
+  backVoice: { name: '', uri: '', language: '' },
   rate: 1,
   pitch: 1,
   volume: 1,
@@ -56,6 +64,15 @@ export const DEFAULT_CONFIG: SmartTTSConfig = {
 
 export const clampConfig = (value?: Partial<SmartTTSConfig> | null): SmartTTSConfig => {
   const raw = (value || {}) as Partial<SmartTTSConfig> & { autoPlayFront?: boolean; autoPlayBack?: boolean };
+  const voice = (input?: VoicePreference): VoicePreference => ({
+    name: typeof input?.name === 'string' ? input.name : typeof raw.voiceName === 'string' ? raw.voiceName : '',
+    uri: typeof input?.uri === 'string' ? input.uri : '',
+    language: typeof input?.language === 'string' ? input.language : '',
+  });
+  const number = (input: unknown, fallback: number, min: number, max: number) => {
+    const parsed = Number(input ?? fallback);
+    return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+  };
   return {
     ...DEFAULT_CONFIG,
     ...raw,
@@ -64,9 +81,11 @@ export const clampConfig = (value?: Partial<SmartTTSConfig> | null): SmartTTSCon
     autoPlayAnswer: raw.autoPlayAnswer ?? raw.autoPlayBack ?? DEFAULT_CONFIG.autoPlayAnswer,
     autoPlayPhysicalFront: raw.autoPlayPhysicalFront ?? DEFAULT_CONFIG.autoPlayPhysicalFront,
     autoPlayPhysicalBack: raw.autoPlayPhysicalBack ?? DEFAULT_CONFIG.autoPlayPhysicalBack,
-    rate: Math.min(2, Math.max(0.5, Number(raw.rate ?? DEFAULT_CONFIG.rate))),
-    pitch: Math.min(2, Math.max(0, Number(raw.pitch ?? DEFAULT_CONFIG.pitch))),
-    volume: Math.min(1, Math.max(0, Number(raw.volume ?? DEFAULT_CONFIG.volume))),
+    frontVoice: voice(raw.frontVoice),
+    backVoice: voice(raw.backVoice),
+    rate: number(raw.rate, DEFAULT_CONFIG.rate, 0.5, 2),
+    pitch: number(raw.pitch, DEFAULT_CONFIG.pitch, 0, 2),
+    volume: number(raw.volume, DEFAULT_CONFIG.volume, 0, 1),
     customRegex: Array.isArray(raw.customRegex) ? raw.customRegex.filter((x) => typeof x === 'string') : [],
   };
 };
@@ -165,14 +184,15 @@ export async function getInheritedConfigForScope(plugin: RNPlugin, scopeId: stri
  * Effective settings use the most specific stored document/folder configuration.
  * If no scoped configuration exists, global defaults are used.
  */
-export async function getEffectiveConfig(plugin: RNPlugin, startRemId?: string): Promise<{ config: SmartTTSConfig; source: ConfigScope }> {
+export async function getEffectiveConfig(plugin: RNPlugin, startRemId?: string): Promise<{ config: SmartTTSConfig; source: ConfigScope; scopeIds: string[] }> {
   const scopes = await getConfigScopes(plugin, startRemId);
+  const scopeIds = scopes.map((scope) => scope.id);
   for (const scope of scopes) {
     if (scope.id === GLOBAL_SCOPE_ID) {
-      return { config: await getGlobalConfig(plugin), source: scope };
+      return { config: await getGlobalConfig(plugin), source: scope, scopeIds };
     }
     const scoped = await getScopeConfig(plugin, scope.id);
-    if (scoped) return { config: scoped, source: scope };
+    if (scoped) return { config: scoped, source: scope, scopeIds };
   }
-  return { config: DEFAULT_CONFIG, source: { id: GLOBAL_SCOPE_ID, kind: 'global', name: 'Global defaults' } };
+  return { config: DEFAULT_CONFIG, source: { id: GLOBAL_SCOPE_ID, kind: 'global', name: 'Global defaults' }, scopeIds };
 }

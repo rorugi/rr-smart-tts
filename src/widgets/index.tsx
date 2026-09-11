@@ -6,41 +6,9 @@ import {
 } from '@remnote/plugin-sdk';
 import '../style.css';
 import { getConfigScopes, getEffectiveConfig, getScopeConfig, setScopeConfig } from '../lib/config';
-import { cacheAvailableVoices } from '../lib/voices';
-
-let voiceRetryTimer: ReturnType<typeof setInterval> | undefined;
-let previousVoicesChanged: any = null;
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
   await plugin.widget.openPopup('config_popup', { remId, cardId });
-}
-
-function startVoiceDiscovery(plugin: ReactRNPlugin) {
-  let attempts = 0;
-
-  const refresh = async () => {
-    attempts += 1;
-    const voices = await cacheAvailableVoices(plugin);
-    if (voices.length > 0 && voiceRetryTimer) {
-      clearInterval(voiceRetryTimer);
-      voiceRetryTimer = undefined;
-    }
-  };
-
-  void refresh();
-  voiceRetryTimer = setInterval(() => {
-    void refresh();
-    if (attempts >= 20 && voiceRetryTimer) {
-      clearInterval(voiceRetryTimer);
-      voiceRetryTimer = undefined;
-    }
-  }, 500);
-
-  previousVoicesChanged = (speechSynthesis as any).onvoiceschanged || null;
-  (speechSynthesis as any).onvoiceschanged = () => {
-    void refresh();
-    previousVoicesChanged?.();
-  };
 }
 
 async function onActivate(plugin: ReactRNPlugin) {
@@ -93,15 +61,8 @@ async function onActivate(plugin: ReactRNPlugin) {
     },
   });
 
-  startVoiceDiscovery(plugin);
 }
 
-async function onDeactivate(_: ReactRNPlugin) {
-  if (voiceRetryTimer) clearInterval(voiceRetryTimer);
-  voiceRetryTimer = undefined;
-  if ((speechSynthesis as any).onvoiceschanged && previousVoicesChanged !== null) {
-    (speechSynthesis as any).onvoiceschanged = previousVoicesChanged;
-  }
-}
+async function onDeactivate(_: ReactRNPlugin) {}
 
 declareIndexPlugin(onActivate, onDeactivate);

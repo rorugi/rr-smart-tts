@@ -1,14 +1,15 @@
 # RR Smart TTS
 
 
-## What's new in 0.3.0
+## What's new in 0.4.0
 
-- Voice discovery now retries automatically and also imports voices discovered by RemNote's main plugin context.
-- A small reload button next to the voice dropdown refreshes the available voice list.
-- Front / Back / Stop controls now use RemNote's fixed queue toolbar instead of scrolling with flashcard content.
-- The review bar is intentionally minimal: no settings button and no spoken-text preview.
-- Folder scopes are labeled as folders even if RemNote also reports them as documents.
-- The settings popup uses the full popup viewport and scrolls cleanly without nested clipping.
+- Separate front/back voices and language preferences, including backward cards.
+- Stop, card completion, queue exit, and newer requests cancel pending speech.
+- Card transitions use RemNote's card-loaded event instead of a fixed delay.
+- Saved settings refresh during review; scope switching cannot save stale values.
+- Current-card preview tests the same formatting and content filters used for speech.
+- Unmatched opening brackets preserve remaining text; removed text does not join words.
+- Regression tests and automated Windows/Linux build checks.
 
 **RR Smart TTS** is a document-aware, filtered text-to-speech plugin for RemNote flashcards.
 
@@ -26,7 +27,7 @@ It is designed for cards where the visible text contains information that should
   - `{curly braces}`
 - Optionally remove URLs.
 - Add custom JavaScript regular expressions for project-specific filters.
-- Configure voice, speech rate, and pitch.
+- Configure separate front/back voices and languages, plus shared speech rate and pitch.
 - Store settings per document or folder using stable RemNote IDs.
 - Fall back to global defaults when a document/folder has no override.
 - Works with forward, backward, cloze, and multiline flashcards.
@@ -83,12 +84,11 @@ During review, RR Smart TTS renders controls below the flashcard:
 - **Front** — speak the semantic front of the card.
 - **Back** — speak the semantic back of the card.
 - **Stop** — cancel speech.
-- **Settings** — open configuration for the current document/folder hierarchy.
 
 The RemNote flashcard queue menu also contains:
 
-- `RR Smart TTS: Configure this document`
-- `RR Smart TTS: Toggle question/answer auto-play for this document`
+- `RR Smart TTS: Configure current document / folder`
+- `RR Smart TTS: Toggle question/answer auto-play for current scope`
 
 A command named `RR Smart TTS: Global settings` opens the global defaults.
 
@@ -112,14 +112,14 @@ RR Smart TTS is intended to replace the normal TTS playback for cards where filt
 
 Requirements:
 
-- Node.js
+- Node.js 22 or newer
 - npm
 - Git
 
 Install dependencies:
 
 ```bash
-npm install
+npm ci
 ```
 
 Run a local development server:
@@ -154,7 +154,7 @@ Validate the plugin manifest from inside a Git repository:
 npm run validate
 ```
 
-For a release build that validates first:
+Run regression tests with `npm test`. For a release build that type-checks, tests, and validates first:
 
 ```bash
 npm run release
@@ -182,7 +182,7 @@ rr-smart-tts:scope:v1:<stable-rem-id>
 
 ## Privacy
 
-RR Smart TTS does not send flashcard content to an external server. Speech is produced through the browser/device `speechSynthesis` API and uses the voices exposed by the current operating system/browser runtime.
+RR Smart TTS makes no direct network requests with flashcard content. It passes text to the browser/device `speechSynthesis` API. Voice processing depends on the selected operating-system/browser voice; some voices may use an online service. The plugin does not guarantee offline processing.
 
 ## Credits
 
@@ -197,6 +197,20 @@ Roland Russwurm
 MIT
 
 
-### Cross-device voices
+## Front/back voices and languages
 
-Voice names are provided by the operating system/browser. A voice selected on desktop may not exist on Android or another device. If the stored voice name is unavailable, RR Smart TTS falls back to the device default voice.
+Each document/folder configuration and the global defaults have independent **Front voice**, **Front language**, **Back voice**, and **Back language** settings. For example, choose Hindi (hi-IN) on the front and English (en-US) on the back. These follow the physical sides even when a backward card shows the back first. Existing shared voice settings are automatically carried over to both sides.
+
+The dropdown lists voices exposed in the popup itself. Playback checks the voices available in the review context again. A saved voice unavailable there falls back to a matching language (then a regional match); if none is exposed, the language is passed to the system speech engine. Actual support depends on that device. A brief playback status identifies the selected voice or fallback.
+
+Selecting a voice fills in its language. Choose **Automatic for chosen language** to let the plugin select a matching voice, or leave the language empty for the system default. Rate and pitch apply to both sides.
+
+## Filter preview
+
+Open a flashcard review and choose **Preview current card** in settings. Select Front or Back to compare original card text with the text that will be spoken. This preview uses the unsaved settings currently shown in the form, including italic/bold filters. **Test front/back** uses that side's voice. The sample-text mode only tests content filters because plain text has no formatting.
+
+Settings are stored as a complete override for each scope. **Use inherited settings** removes that override. Save is disabled while a scope loads or a write is pending; errors are shown without discarding the form.
+
+## Verification
+
+The regression tests cover filtering, voice migration/fallback, forward/backward/cloze behavior, multiline content, inheritance, Stop and queue races, scope switching, current-card previews, and live settings updates. Speech and RemNote APIs are mocked in these tests. Before publishing, run the [RemNote smoke checks](docs/SMOKE_TEST.md) on the target desktop/mobile clients.
