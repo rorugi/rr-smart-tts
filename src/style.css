@@ -139,3 +139,6 @@
 }
 
 .rr-tts-bar .rr-tts-button { flex: 0 0 auto; white-space: nowrap; }
+
+.rr-tts-review-host { display: flex; justify-content: flex-end; width: 100%; min-height: 76px; padding: 6px 16px; box-sizing: border-box; }
+.rr-tts-review-host .rr-tts-bar { background: var(--rn-clr-background-primary, Canvas); color: var(--rn-clr-content-primary, CanvasText); }

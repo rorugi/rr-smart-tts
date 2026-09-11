@@ -1,7 +1,13 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.3
+## What's new in 0.4.4
+
+- Mounts playback directly in the review screen so controls and physical-side autoplay do not depend on opening a floating window.
+- Keeps controls at the top right in native mode, or right-aligned below the toolbar in sandbox mode.
+- Card-loading failures show a status and Retry instead of hiding the controls.
+
+## Added in 0.4.3
 
 - Removes old below-card and toolbar registrations during upgrade.
 - Anchors review controls to the top right.
