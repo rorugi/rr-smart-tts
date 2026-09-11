@@ -149,3 +149,6 @@
 .rr-tts-position-right .rr-tts-bar { flex-direction: column; align-items: stretch; }
 .rr-tts-position-right .rr-tts-button { justify-content: center; }
 .rr-tts-position-under { justify-content: center; }
+
+.rr-tts-position-top { justify-content: flex-end; padding: 4px 12px; }
+.rr-tts-position-top .rr-tts-bar { flex-direction: row; align-items: center; }
