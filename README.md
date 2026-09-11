@@ -1,7 +1,13 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.4
+## What's new in 0.4.5
+
+- Controls attach directly below the card, aligned right, using outlined speaker icons.
+- Loads from card-scoped IDs instead of global queue state; no startup Retry row.
+- Voice names stay in settings and do not appear in playback controls.
+
+## Added in 0.4.4
 
 - Mounts playback directly in the review screen so controls and physical-side autoplay do not depend on opening a floating window.
 - Keeps controls at the top right in native mode, or right-aligned below the toolbar in sandbox mode.

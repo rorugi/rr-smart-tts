@@ -56,10 +56,11 @@ function setup() {
   const listeners = new Map();
   let current = { _id: 'a', getRem: async () => rems.card, getType: async () => 'forward' };
   api = {
-    widget: { getWidgetContext: async () => ({ remId: 'card' }), closePopup: async () => {} },
+    widget: { getWidgetContext: async () => ({ remId: 'card', cardId: current?._id, revealed: false }), closePopup: async () => {} },
     storage: { getSynced: async (key) => values.get(key), setSynced: async (key, value) => {
       values.set(key, value); writes.push([key, value]); emit('storage', key);
     } },
+    card: { findOne: async () => current },
     rem: { findOne: async (id) => rems[id] },
     richText: { toString: async (nodes) => nodes.map((n) => typeof n === 'string' ? n : n.text || '').join('') },
     queue: { getCurrentCard: async () => current, hasRevealedAnswer: async () => false },
@@ -79,7 +80,7 @@ function setup() {
   return { values, writes, rems, emit, spoken, setCurrent: (card) => { current = card; } };
 }
 const mount = async (Component) => act(async () => { root = Renderer.create(React.createElement(Component)); await tick(); });
-const button = (text) => root.root.findAllByType('button').find((b) => b.children.join('') === text);
+const button = (text) => root.root.findAllByType('button').find((b) => (b.props['aria-label'] || b.children.join('')) === text);
 const scopeSelect = () => root.root.findAllByType('select')[0];
 const rate = () => root.root.findAllByType('input').find((i) => i.props.type === 'range' && i.props.min === '0.5').props.value;
 afterEach(async () => {
@@ -165,11 +166,12 @@ test('toolbar completion clears old card and waits for the next load event', asy
   await mount(Toolbar);
   assert.equal(h.spoken.length, 1);
   await act(async () => { h.emit('complete'); await tick(); });
-  assert.equal(button('🔊 Front').props.disabled, true);
+  assert.equal(root.root.findAllByType('button').length, 0);
   assert.equal(h.spoken.length, 1);
   h.rems.card.text = ['new card'];
   h.setCurrent({ _id: 'b', getRem: async () => h.rems.card, getType: async () => 'forward' });
-  await act(async () => { h.emit('load'); await tick(); });
+  await act(async () => root.unmount());
+  await mount(Toolbar);
   assert.equal(h.spoken.length, 2);
   assert.equal(h.spoken[1].text, 'new card');
 });
@@ -184,9 +186,9 @@ test('removes legacy locations and registers intrinsically sized popup', async (
   api.app.registerCommand = async () => {};
   api.window = { openFloatingWidget: async () => 'floating', isFloatingWidgetOpen: async () => true, closeFloatingWidget: async () => {} };
   await activate(api);
-  assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'QueueBelowTopBar');
+  assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'FlashcardUnder');
   assert.equal(registered.find(([name]) => name === 'config_popup')[2].dimensions.height, 'auto');
-  assert.deepEqual(removed, [['smart_tts', 'QueueToolbar'], ['smart_tts', 'FlashcardUnder'], ['config_popup', 'Popup'], ['smart_tts', 'FloatingWidget']]);
+  assert.deepEqual(removed, [['smart_tts', 'QueueToolbar'], ['smart_tts', 'QueueBelowTopBar'], ['config_popup', 'Popup'], ['smart_tts', 'FloatingWidget']]);
 });
 
 test('Save and Close stay outside the scrolling settings body', async () => {
@@ -204,8 +206,8 @@ for (const type of ['forward', 'backward']) {
     h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalFront: true, autoPlayPhysicalBack: true, autoPlayQuestion: false, autoPlayAnswer: false });
     h.setCurrent({ _id: 'physical', getRem: async () => h.rems.card, getType: async () => type });
     await mount(Toolbar);
-    assert.equal(button('🔊 Front').props.disabled, false);
-    assert.equal(button('🔊 Back').props.disabled, false);
+    assert.ok(button('Front'));
+    assert.ok(button('Back'));
     assert.equal(h.spoken.length, 1);
     assert.equal(h.spoken[0].text, type === 'forward' ? 'card' : 'back');
     await act(async () => { h.emit('reveal'); await tick(); });
@@ -215,11 +217,24 @@ for (const type of ['forward', 'backward']) {
     assert.equal(h.spoken.length, 2);
   });
 }
-test('card load failures keep controls and recovery visible', async () => {
-  setup(); api.queue.getCurrentCard = async () => { throw new Error('offline'); };
+test('card load errors use a toast, with no Retry or stale voice row', async () => {
+  setup(); const messages = [];
+  api.card.findOne = async () => { throw new Error('offline'); };
+  api.app.toast = async message => messages.push(message);
   await mount(Toolbar);
-  assert.equal(button('🔊 Front').props.disabled, true);
-  assert.ok(button('■ Stop'));
-  assert.ok(button('Retry'));
-  assert.match(root.root.findByProps({ role: 'status' }).children.join(''), /Could not load/);
+  assert.equal(root.root.findAllByType('button').length, 0);
+  assert.match(messages[0], /Could not load/);
+});
+
+test('card-scoped loading works before global queue APIs are ready and hides voice names', async () => {
+  const h = setup();
+  h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalFront: true });
+  api.queue.getCurrentCard = async () => { throw new Error('queue not ready'); };
+  api.queue.hasRevealedAnswer = async () => { throw new Error('queue not ready'); };
+  await mount(Toolbar);
+  assert.ok(button('Front')); assert.ok(button('Back')); assert.ok(button('Stop'));
+  assert.equal(h.spoken.length, 1);
+  assert.equal(root.root.findAllByProps({ role: 'status' }).length, 0);
+  assert.equal(root.root.findAllByType('svg').length, 2);
+  assert.equal(root.root.findAllByType('button').length, 3);
 });
