@@ -1,7 +1,14 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.2
+## What's new in 0.4.3
+
+- Removes old below-card and toolbar registrations during upgrade.
+- Anchors review controls to the top right.
+- Settings use an intrinsic 400px scrolling body with a separate Save/Close footer.
+- Builds the shared App.css expected by the RemNote SDK.
+
+## Added in 0.4.2
 
 - Fixed the settings popup shrinking to zero by giving its host a stable height.
 - Front / Back / Stop float on the right during review and close when review ends.
@@ -91,7 +98,7 @@ For cloze cards, RemNote's cloze question is treated as the physical front and t
 
 ## Flashcard controls
 
-During review, RR Smart TTS floats controls on the right, above the bottom answer area:
+During review, RR Smart TTS floats controls at the top right:
 
 - **Front** — speak the semantic front of the card.
 - **Back** — speak the semantic back of the card.

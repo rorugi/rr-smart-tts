@@ -27,3 +27,5 @@ for (const widget of ['index', 'smart_tts', 'config_popup', 'unknown', 'https://
   }
 }
 console.log('Package checks passed: version, documentation, and sandbox JavaScript/styles.');
+
+assert.equal(fs.readFileSync(path.join(dist, 'App.css'), 'utf8'), fs.readFileSync(path.join(root, 'src/style.css'), 'utf8'), 'SDK shared stylesheet must contain current plugin styles');
