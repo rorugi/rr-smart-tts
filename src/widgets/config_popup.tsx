@@ -299,7 +299,7 @@ function ConfigPopup() {
 
       <div className="rr-tts-section">
         <h3>Content filters</h3>
-        <label className="rr-tts-check"><input type="checkbox" checked={config.pauseCloze} onChange={(e) => update('pauseCloze', e.target.checked)} /> Pause at hidden cloze (1 second) instead of saying “blank”</label>
+        <label className="rr-tts-check"><input type="checkbox" checked={config.pauseCloze} onChange={(e) => update('pauseCloze', e.target.checked)} /> Pause at hidden cloze (0.5 seconds) instead of saying “blank”</label>
         <div className="rr-tts-grid">
           <label className="rr-tts-check"><input type="checkbox" checked={config.removeParentheses} onChange={(e) => update('removeParentheses', e.target.checked)} /> Remove (parentheses)</label>
           <label className="rr-tts-check"><input type="checkbox" checked={config.removeSquareBrackets} onChange={(e) => update('removeSquareBrackets', e.target.checked)} /> Remove [square brackets]</label>
