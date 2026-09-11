@@ -5,19 +5,15 @@
   --rr-tts-muted: rgba(128, 128, 128, 0.95);
 }
 
-* { box-sizing: border-box; }
+.rr-tts-panel, .rr-tts-panel *, .rr-tts-bar, .rr-tts-bar * { box-sizing: border-box; }
 
 .rr-tts-bar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 2px 0;
+  padding: 6px 0;
   font-size: 13px;
-}
-
-.rr-tts-bar-fixed {
-  white-space: nowrap;
 }
 
 .rr-tts-button {
@@ -35,16 +31,39 @@
 .rr-tts-button-primary:hover { background: var(--rr-tts-accent-dark); }
 .rr-tts-play-button { background: transparent; font-weight: 600; }
 .rr-tts-play-button:hover { background: transparent; border-color: var(--rr-tts-accent); }
-.rr-tts-status { color: var(--rr-tts-muted); font-size: 12px; }
+.rr-tts-status { color: var(--rr-tts-muted); font-size: 12px; flex-basis: 100%; overflow-wrap: anywhere; }
+.rr-tts-status:empty { display: none; }
+.rr-tts-settings { border: 0; padding: 0; margin: 0; min-width: 0; }
+.rr-tts-button:disabled { opacity: 0.5; cursor: default; }
 
 .rr-tts-panel {
   width: 100%;
-  height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 20px 24px 30px;
+  max-width: 100%;
+  height: min(680px, 70vh);
+  height: min(680px, 70dvh);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   color: inherit;
 }
+
+.rr-tts-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+  overscroll-behavior: contain;
+}
+
+.rr-tts-panel-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--rr-tts-border);
+  padding: 12px 24px;
+}
+
+.rr-tts-panel-loading { padding: 24px; }
 
 .rr-tts-title { margin: 0 0 4px; font-size: 22px; font-weight: 750; }
 .rr-tts-subtitle { margin: 0 0 18px; color: var(--rr-tts-muted); font-size: 13px; line-height: 1.45; }
@@ -79,7 +98,8 @@
 
 @media (max-width: 640px) {
   .rr-tts-grid { grid-template-columns: 1fr; }
-  .rr-tts-panel { width: 100%; padding: 14px; }
+  .rr-tts-panel-body { padding: 14px; }
+  .rr-tts-panel-footer { padding: 10px 14px; }
   .rr-tts-bar { gap: 4px; }
   .rr-tts-button { padding: 6px 8px; }
 }

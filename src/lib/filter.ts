@@ -18,8 +18,10 @@ export function filterFormatting(richText: RichTextInterface | undefined, config
     }
 
     if (item && typeof item === 'object' && item.i === 'm') {
-      if (config.skipItalic && item.l === true) continue;
-      if (config.skipBold && item.b === true) continue;
+      if ((config.skipItalic && item.l === true) || (config.skipBold && item.b === true)) {
+        result.push(' ');
+        continue;
+      }
     }
 
     result.push(item);
@@ -37,35 +39,34 @@ export function removeBracketedContent(
   if (options.square) pairs['['] = ']';
   if (options.curly) pairs['{'] = '}';
 
-  const closers = new Set(Object.values(pairs));
   const stack: string[] = [];
   let out = '';
+  let pending = '';
 
   for (const char of input) {
     if (pairs[char]) {
       stack.push(pairs[char]);
+      pending += char;
       continue;
     }
 
     if (stack.length > 0) {
+      pending += char;
       if (char === stack[stack.length - 1]) {
         stack.pop();
-      } else if (pairs[char]) {
-        stack.push(pairs[char]);
+        if (stack.length === 0) {
+          out += ' ';
+          pending = '';
+        }
       }
-      continue;
-    }
-
-    if (closers.has(char)) {
-      // Preserve unmatched closing brackets instead of silently deleting text.
-      out += char;
       continue;
     }
 
     out += char;
   }
 
-  return out;
+  // An unfinished group is ordinary text, not permission to discard the rest.
+  return out + pending;
 }
 
 export function applyPlainTextFilters(input: string, config: SmartTTSConfig): string {

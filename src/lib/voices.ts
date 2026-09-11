@@ -1,4 +1,5 @@
 import type { RNPlugin } from '@remnote/plugin-sdk';
+import type { VoicePreference } from './config';
 
 export type VoiceInfo = {
   name: string;
@@ -45,7 +46,7 @@ export function mergeVoiceLists(...lists: VoiceInfo[][]): VoiceInfo[] {
   const merged: VoiceInfo[] = [];
   for (const list of lists) {
     for (const voice of list) {
-      const key = `${voice.name}\u0000${voice.lang}`;
+      const key = `${voice.voiceURI || voice.name}\u0000${voice.lang}`;
       if (seen.has(key)) continue;
       seen.add(key);
       merged.push(voice);
@@ -54,4 +55,20 @@ export function mergeVoiceLists(...lists: VoiceInfo[][]): VoiceInfo[] {
   return merged.sort((a, b) =>
     `${a.lang} ${a.name}`.localeCompare(`${b.lang} ${b.name}`)
   );
+}
+
+/** Only pass voices obtained from the context that will perform playback. */
+export function resolveVoice<T extends VoiceInfo>(voices: T[], preference: VoicePreference) {
+  const language = preference.language.toLowerCase();
+  const compatible = (voice: T) => !language || voice.lang.toLowerCase() === language;
+  const selected = (preference.uri && voices.find((v) => v.voiceURI === preference.uri && compatible(v))) ||
+    (preference.name && voices.find((v) => v.name === preference.name && compatible(v))) || undefined;
+  const languageVoice = language ? voices.find((v) => v.lang.toLowerCase() === language) ||
+    voices.find((v) => v.lang.toLowerCase().split('-')[0] === language.split('-')[0]) : undefined;
+  const voice = selected || languageVoice;
+  const fallback = Boolean((preference.name || preference.uri) && !selected);
+  const status = fallback
+    ? `Saved voice unavailable here. Using ${voice?.name || (language ? `the system voice for ${preference.language}` : 'the system default')}.`
+    : voice ? `${voice.name} — ${voice.lang}` : language ? `System voice for ${preference.language}` : 'System default voice';
+  return { voice, fallback, status };
 }

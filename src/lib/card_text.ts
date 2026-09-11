@@ -53,18 +53,42 @@ export async function getSemanticBackText(
     return richTextToSpeechText(plugin, combined as RichTextInterface, config);
   }
 
-  const children = await contextRem.getChildrenRem();
-  const cardItemFlags = await Promise.all((children || []).map((child: RemLike) => child.isCardItem()));
-  const multilineChildren = (children || []).filter((_: RemLike, index: number) => cardItemFlags[index]);
+  // Always prepare the direct answer independently of optional multiline RPCs.
+  // Some clients expose a serialized Rem or reject child/card-item lookups.
+  const hasBackText = Array.isArray(contextRem.backText) && contextRem.backText.length > 0;
+  const directBack = await richTextToSpeechText(plugin, contextRem.backText, config);
+  if (Array.isArray(contextRem.children) && contextRem.children.length === 0) return directBack;
 
-  if (multilineChildren.length > 0) {
-    const parts = await Promise.all(
-      multilineChildren.map((child: RemLike) => richTextToSpeechText(plugin, child.text, config))
-    );
-    return parts.filter(Boolean).join(', ');
+  // Prefer confirmed multiline items when present, even if the Rem also has
+  // back text. Never interpret ordinary child notes as answer items.
+  try {
+    const rem = typeof contextRem.getChildrenRem === 'function'
+      ? contextRem : await plugin.rem.findOne(contextRem._id);
+    if (!rem || typeof rem.getChildrenRem !== 'function') {
+      throw new Error('RemNote could not load the multiline answer.');
+    }
+    const children = await rem.getChildrenRem();
+    const items = await Promise.all((children || []).map(async (child: RemLike) => {
+      const item = typeof child?.isCardItem === 'function' ? child : await plugin.rem.findOne(child?._id);
+      if (!item || typeof item.isCardItem !== 'function') {
+        throw new Error('RemNote could not identify a multiline answer item.');
+      }
+      return await item.isCardItem() ? item : undefined;
+    }));
+    const multilineChildren = items.filter(Boolean);
+
+    if (multilineChildren.length > 0) {
+      const parts = await Promise.all(
+        multilineChildren.map((child: RemLike) => richTextToSpeechText(plugin, child.text, config))
+      );
+      return parts.filter(Boolean).join(', ');
+    }
+
+    return directBack;
+  } catch (error) {
+    if (hasBackText) return directBack;
+    throw error;
   }
-
-  return richTextToSpeechText(plugin, contextRem.backText, config);
 }
 
 export function cardShowsSemanticFrontFirst(cardType: CardTypeLike | undefined): boolean {

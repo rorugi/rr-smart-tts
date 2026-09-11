@@ -1,145 +1,60 @@
-import {
-  QueueEvent,
-  renderWidget,
-  useAPIEventListener,
-  usePlugin,
-} from '@remnote/plugin-sdk';
-import { useCallback, useEffect, useState } from 'react';
+import { QueueEvent, StorageEvents, renderWidget, useAPIEventListener, usePlugin } from '@remnote/plugin-sdk';
+import { useEffect, useMemo, useState } from 'react';
 import '../style.css';
-import { getEffectiveConfig, SmartTTSConfig } from '../lib/config';
-import {
-  cardShowsSemanticFrontFirst,
-  getSemanticBackText,
-  getSemanticFrontText,
-} from '../lib/card_text';
-import { speakText, stopSpeech } from '../lib/speech';
-import { cacheAvailableVoices } from '../lib/voices';
-
-type PhysicalSide = 'front' | 'back';
-
-type QueueContext = {
-  rem?: any;
-  cardType?: any;
-  config?: SmartTTSConfig;
-};
-
-function physicalSideForPhase(cardType: any, answerRevealed: boolean): PhysicalSide {
-  const frontFirst = cardShowsSemanticFrontFirst(cardType);
-  if (!answerRevealed) return frontFirst ? 'front' : 'back';
-  return frontFirst ? 'back' : 'front';
-}
-
-function shouldAutoplayPhase(
-  config: SmartTTSConfig,
-  answerRevealed: boolean,
-  side: PhysicalSide
-): boolean {
-  const phaseEnabled = answerRevealed ? config.autoPlayAnswer : config.autoPlayQuestion;
-  const sideEnabled =
-    side === 'front' ? config.autoPlayPhysicalFront : config.autoPlayPhysicalBack;
-  return phaseEnabled || sideEnabled;
-}
+import { configStorageKey, getEffectiveConfig } from '../lib/config';
+import { getSemanticBackText, getSemanticFrontText } from '../lib/card_text';
+import { speakPreparedText, stopSpeech } from '../lib/speech';
+import { ReviewContext, ReviewController } from '../lib/review';
 
 function SmartTTSWidget() {
   const plugin = usePlugin();
-  const [answerRevealed, setAnswerRevealed] = useState(false);
-  const [context, setContext] = useState<QueueContext>({});
-
-  const refreshContext = useCallback(async () => {
-    try {
+  const [context, setContext] = useState<ReviewContext>();
+  const [status, setStatus] = useState('');
+  const controller = useMemo(() => new ReviewController({
+    load: async () => {
       const card = await plugin.queue.getCurrentCard();
-      const rem = await card?.getRem();
-      const cardType = await card?.getType();
-      const effective = await getEffectiveConfig(plugin, rem?._id);
-      setContext({ rem, cardType, config: effective.config });
-      await cacheAvailableVoices(plugin);
-    } catch {
-      setContext({});
-    }
-  }, [plugin]);
-
-  const config = context.config;
-  const contextRem = context.rem;
-  const cardType = context.cardType;
-
-  const speakPhysicalSide = useCallback(
-    async (side: PhysicalSide) => {
-      if (!config?.enabled || !contextRem) return;
-      const text =
-        side === 'front'
-          ? await getSemanticFrontText(plugin, contextRem, cardType, config)
-          : await getSemanticBackText(plugin, contextRem, cardType, config);
-      if (!text) return;
-      speakText(text, config);
+      if (!card) return;
+      const [rem, cardType, revealed] = await Promise.all([
+        card.getRem(), card.getType(), plugin.queue.hasRevealedAnswer(),
+      ]);
+      if (!rem) return;
+      const { config, scopeIds } = await getEffectiveConfig(plugin, rem._id);
+      return { cardId: card._id, rem, cardType, revealed, config, scopeIds };
     },
-    [plugin, config, contextRem, cardType]
-  );
-
-  const maybeAutoplay = useCallback(
-    async (revealed: boolean) => {
-      if (!config?.enabled || !contextRem) return;
-      const side = physicalSideForPhase(cardType, revealed);
-      if (!shouldAutoplayPhase(config, revealed, side)) return;
-      await speakPhysicalSide(side);
+    config: async (remId) => (await getEffectiveConfig(plugin, remId)).config,
+    changed: setContext,
+    speak: (ctx, side) => {
+      void speakPreparedText(() => (side === 'front' ? getSemanticFrontText : getSemanticBackText)(
+        plugin, ctx.rem, ctx.cardType, ctx.config
+      ), ctx.config, side, setStatus);
     },
-    [config, contextRem, cardType, speakPhysicalSide]
-  );
+    stop: stopSpeech,
+    error: setStatus,
+  }), [plugin]);
 
+  useEffect(() => { void controller.load(); return () => controller.clear(); }, [controller]);
+  useAPIEventListener(QueueEvent.QueueLoadCard, undefined, () => void controller.load());
+  useAPIEventListener(QueueEvent.RevealAnswer, undefined, () => controller.reveal());
+  useAPIEventListener(QueueEvent.QueueCompleteCard, undefined, () => controller.clear());
+  useAPIEventListener(QueueEvent.QueueEnter, undefined, () => void controller.load());
+  useAPIEventListener(QueueEvent.QueueExit, undefined, () => controller.clear());
+  const scopeKeys = JSON.stringify(context?.scopeIds || []);
   useEffect(() => {
-    void refreshContext();
-    return () => stopSpeech();
-  }, [refreshContext]);
+    const keys = (JSON.parse(scopeKeys) as string[]).map(configStorageKey);
+    const refresh = () => void controller.refreshConfig();
+    keys.forEach((key) => plugin.event.addListener(StorageEvents.StorageSyncedChange, key, refresh));
+    // Recheck after subscribing to close the initial load/subscription gap.
+    if (keys.length) refresh();
+    return () => keys.forEach((key) => plugin.event.removeListener(StorageEvents.StorageSyncedChange, key, refresh));
+  }, [plugin, controller, scopeKeys]);
 
-  useEffect(() => {
-    if (!config?.enabled || !contextRem || answerRevealed) return;
-    void maybeAutoplay(false);
-  }, [
-    config?.enabled,
-    config?.autoPlayQuestion,
-    config?.autoPlayPhysicalFront,
-    config?.autoPlayPhysicalBack,
-    contextRem?._id,
-    cardType,
-    answerRevealed,
-    maybeAutoplay,
-  ]);
-
-  useAPIEventListener(QueueEvent.RevealAnswer, undefined, () => {
-    stopSpeech();
-    setAnswerRevealed(true);
-    if (config?.enabled) void maybeAutoplay(true);
-  });
-
-  useAPIEventListener(QueueEvent.QueueCompleteCard, undefined, () => {
-    stopSpeech();
-    setAnswerRevealed(false);
-    // Let RemNote advance the queue before resolving the next current card.
-    setTimeout(() => void refreshContext(), 80);
-  });
-
-  useAPIEventListener(QueueEvent.QueueEnter, undefined, () => {
-    setAnswerRevealed(false);
-    void refreshContext();
-  });
-
-  useAPIEventListener(QueueEvent.QueueExit, undefined, () => {
-    stopSpeech();
-    setContext({});
-  });
-
-  if (!config?.enabled || !contextRem) return <></>;
-
+  if (!context?.config.enabled) return <></>;
   return (
-    <div className="rr-tts-bar rr-tts-bar-fixed">
-      <button className="rr-tts-button rr-tts-play-button" onClick={() => void speakPhysicalSide('front')}>
-        🔊 Front
-      </button>
-      <button className="rr-tts-button rr-tts-play-button" onClick={() => void speakPhysicalSide('back')}>
-        🔊 Back
-      </button>
-      <button className="rr-tts-button" onClick={stopSpeech}>
-        ■ Stop
-      </button>
+    <div className="rr-tts-bar">
+      <button className="rr-tts-button rr-tts-play-button" onClick={() => controller.play('front')}>🔊 Front</button>
+      <button className="rr-tts-button rr-tts-play-button" onClick={() => controller.play('back')}>🔊 Back</button>
+      <button className="rr-tts-button" onClick={() => { controller.stop(); setStatus('Stopped.'); }}>■ Stop</button>
+      <span className="rr-tts-status" role="status" title={status}>{status}</span>
     </div>
   );
 }

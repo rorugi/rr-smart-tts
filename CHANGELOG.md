@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.1
+
+- Moved Front / Back / Stop into FlashcardUnder, the same below-card slot as RemNote's standard TTS controls.
+- Replaced the oversized popup with a bounded, responsive panel, independently scrolling settings, and a persistent Save / Close footer.
+- Kept ordinary back text playable when optional multiline API calls fail; retained confirmed multiline answers and filtering.
+- Distinguished speech-engine failures from text extraction failures.
+- Added eight regression checks for placement, footer structure, and back-answer fallback; 50 tests now pass.
+- Documented the difference between repository source files and the compiled installation ZIP.
+
+## 0.4.0
+
+- Added independent physical front/back voices and languages, with migration from the shared voice setting.
+- Added local voice availability checks, language fallback, and playback status/error reporting.
+- Cancelled pending speech on Stop/queue transitions and prevented stale utterance callbacks from cancelling newer speech.
+- Replaced delayed queue refresh with QueueLoadCard and guarded asynchronous context loads.
+- Refreshed active configuration on document/folder/global storage changes.
+- Protected scope loading/saving against stale responses and disabled editing while saving/loading.
+- Added current-card previews using the actual rich-text filtering pipeline.
+- Preserved incomplete bracket groups and spacing around removed content.
+- Added regression tests and Windows/Linux CI; release now checks types, tests, and validates before packaging.
+- Loaded the production sandbox stylesheet and included smoke-test documentation in the package.
+
+## 0.3.0
+
+- Moved playback buttons into the fixed queue toolbar and simplified the review controls.
+- Improved voice discovery and settings popup layout; distinguished folders from documents.
+
 ## 0.2.0
 
 - Added four independent autoplay modes: question phase, answer phase, physical front side, and physical back side.
