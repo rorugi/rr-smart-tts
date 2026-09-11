@@ -140,5 +140,8 @@
 
 .rr-tts-bar .rr-tts-button { flex: 0 0 auto; white-space: nowrap; }
 
-.rr-tts-review-host { display: flex; justify-content: flex-end; width: 100%; min-height: 76px; padding: 6px 16px; box-sizing: border-box; }
+.rr-tts-review-host { display: flex; justify-content: flex-end; width: 100%; padding: 6px 0; box-sizing: border-box; }
 .rr-tts-review-host .rr-tts-bar { background: var(--rn-clr-background-primary, Canvas); color: var(--rn-clr-content-primary, CanvasText); }
+
+.rr-tts-review-host .rr-tts-bar { width: auto; padding: 0; border: 0; gap: 8px; }
+.rr-tts-review-host .rr-tts-button { display: inline-flex; align-items: center; gap: 8px; font-weight: 400; }
