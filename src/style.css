@@ -150,5 +150,5 @@
 .rr-tts-position-right .rr-tts-button { justify-content: center; }
 .rr-tts-position-under { justify-content: center; }
 
-.rr-tts-position-top { justify-content: flex-end; padding: 4px 12px; }
-.rr-tts-position-top .rr-tts-bar { flex-direction: row; align-items: center; }
+.rr-tts-position-top { justify-content: center; width: 100%; min-height: 52px; padding: 8px 12px; border-block: 1px solid var(--rr-tts-border); background: var(--rn-clr-background-primary, Canvas); }
+.rr-tts-position-top .rr-tts-bar { flex-direction: row; align-items: center; justify-content: center; }

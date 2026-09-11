@@ -285,3 +285,28 @@ test('Top creates a below-top-bar widget and follows card transitions without to
   await act(async () => { h.emit('load'); await tick(); });
   assert.equal(h.spoken.length, 2); assert.equal(h.spoken[1].text, 'next');
 });
+
+test('Top stays visible and loads automatically when the queue becomes ready', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const h = setup(); h.values.set('rr-smart-tts:controls-position:v1', 'top');
+  h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalFront: true });
+  api.widget.getWidgetContext = async () => ({}); h.setCurrent(undefined);
+  await mount(Toolbar);
+  assert.ok(root.root.findByProps({ role: 'toolbar' }));
+  assert.equal(button('Front').props.disabled, true);
+  h.setCurrent({ _id: 'ready', getRem: async () => h.rems.card, getType: async () => 'forward' });
+  await act(async () => { t.mock.timers.tick(250); await tick(); });
+  assert.equal(button('Front').props.disabled, false); assert.equal(h.spoken.length, 1);
+  await act(async () => { t.mock.timers.tick(3000); await tick(); });
+  assert.equal(h.spoken.length, 1);
+});
+test('leaving review cancels pending Top readiness retries', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const h = setup(); h.values.set('rr-smart-tts:controls-position:v1', 'top');
+  api.widget.getWidgetContext = async () => ({}); h.setCurrent(undefined);
+  await mount(Toolbar);
+  await act(async () => { h.emit('exit'); await tick(); });
+  h.setCurrent({ _id: 'late', getRem: async () => h.rems.card, getType: async () => 'forward' });
+  await act(async () => { t.mock.timers.tick(3000); await tick(); });
+  assert.equal(button('Front').props.disabled, true); assert.equal(h.spoken.length, 0);
+});
