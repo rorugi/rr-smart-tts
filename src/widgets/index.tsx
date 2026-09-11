@@ -6,20 +6,25 @@ import {
 } from '@remnote/plugin-sdk';
 import '../style.css';
 import { getConfigScopes, getEffectiveConfig, getScopeConfig, setScopeConfig } from '../lib/config';
+import { attachFloatingControls } from '../lib/floating_controls';
+
+let detachControls: (() => Promise<void>) | undefined;
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
   await plugin.widget.openPopup('config_popup', { remId, cardId });
 }
 
 async function onActivate(plugin: ReactRNPlugin) {
-  // Use the same below-card slot as RemNote's standard text-to-speech plugin.
-  await plugin.app.registerWidget('smart_tts', WidgetLocation.FlashcardUnder, {
-    dimensions: { height: 'auto', width: 'auto' },
+  await plugin.app.registerWidget('smart_tts', WidgetLocation.FloatingWidget, {
+    dimensions: { height: 'auto', width: 280 },
   });
 
   await plugin.app.registerWidget('config_popup', WidgetLocation.Popup, {
-    dimensions: { height: 'auto', width: 720 },
+    // A fixed host height breaks the iframe auto-size / viewport-height loop.
+    dimensions: { height: 560, width: 720 },
   });
+  await detachControls?.();
+  detachControls = attachFloatingControls(plugin);
 
   await plugin.app.registerMenuItem({
     id: 'rr-smart-tts-configure',
@@ -63,6 +68,9 @@ async function onActivate(plugin: ReactRNPlugin) {
 
 }
 
-async function onDeactivate(_: ReactRNPlugin) {}
+async function onDeactivate(_: ReactRNPlugin) {
+  await detachControls?.();
+  detachControls = undefined;
+}
 
 declareIndexPlugin(onActivate, onDeactivate);

@@ -209,7 +209,7 @@ function ConfigPopup() {
     );
   };
 
-  if (!data) return <div className="rr-tts-panel-loading">Loading RR Smart TTS settings…</div>;
+  if (!data) return <div className="rr-tts-panel rr-tts-panel-loading">Loading RR Smart TTS settings…</div>;
 
   return (
     <div className="rr-tts-panel">
