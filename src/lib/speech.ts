@@ -73,7 +73,7 @@ function playSequence(text: string, config: SmartTTSConfig, side: PhysicalSide, 
         pauseTimer = undefined;
         if (request !== generation) return;
         try { advance(); } catch { stopSpeech(); report('Speech could not start. Try another voice.'); }
-      }, 1000);
+      }, 500);
     };
     if (part.trim()) play(part, config, side, report, done);
     else if (parts.length > 1) done();

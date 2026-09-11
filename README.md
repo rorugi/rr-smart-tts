@@ -1,7 +1,12 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.7
+## What's new in 0.4.8
+
+- Cloze question playback no longer appends the back/answer field.
+- Hidden cloze pauses now last 0.5 seconds; settings and preview show the updated duration.
+
+## Added in 0.4.7
 
 - Removes Toolbar; previous Toolbar preferences fall back to Right.
 - Optional **Pause at hidden cloze (1 second)** replaces the question-side blank with a timed gap; the revealed answer reads normally. Stop and card transitions cancel pending gaps.
