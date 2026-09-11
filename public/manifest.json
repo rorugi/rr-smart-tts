@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "id": "rr-smart-tts",
+  "name": "RR Smart TTS",
+  "author": "Roland Russwurm",
+  "repoUrl": "https://github.com/rorugi/rr-smart-tts",
+  "enableOnMobile": true,
+  "version": {
+    "major": 0,
+    "minor": 3,
+    "patch": 0
+  },
+  "minimumRemNoteVersion": {
+    "major": 1,
+    "minor": 12,
+    "patch": 67
+  },
+  "description": "Filtered, document-aware text-to-speech for RemNote flashcards with per-document/folder voice, autoplay, formatting filters, and fixed review controls.",
+  "requestNative": true,
+  "requiredScopes": [
+    {
+      "type": "All",
+      "level": "Read"
+    }
+  ]
+}
