@@ -1,7 +1,12 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.9
+## What's new in 0.4.10
+
+- Top uses a dedicated full-width row with centered controls and a stable minimum height.
+- Controls remain visible while a card loads; startup retries are serial, bounded, and cancelled when review ends.
+
+## Added in 0.4.9
 
 - Cloze omission adds no timed silence; speech continues when the preceding segment ends.
 - Top registers right-aligned controls in RemNote’s QueueBelowTopBar slot, including when no other widget uses it.

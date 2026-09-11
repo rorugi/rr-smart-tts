@@ -257,7 +257,7 @@ function ConfigPopup() {
             <option value="under">Flashcard Under</option>
             <option value="top">Top</option>
           </select>
-          <div className="rr-tts-scope-note">Applies to all decks. Save to move the controls. Right stacks the buttons vertically.</div>
+          <div className="rr-tts-scope-note">Applies to all decks. Save to move the controls. Right stacks the buttons vertically. Top uses a separate centered controls row below the top bars.</div>
         </div>
         <div className="rr-tts-grid">
           <label className="rr-tts-check"><input type="checkbox" checked={config.enabled} onChange={(e) => update('enabled', e.target.checked)} /> Enable RR Smart TTS</label>
