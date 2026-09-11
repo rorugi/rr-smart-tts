@@ -20,18 +20,14 @@ function SmartTTSWidget() {
   const controller = useMemo(() => new ReviewController({
     load: async () => {
       // Card-scoped IDs are available when this widget mounts, before global queue state settles.
-      const placement = await getControlsPosition(plugin);
       const widget = await plugin.widget.getWidgetContext<WidgetLocation.FlashcardUnder>();
-      const queueCard = placement === 'toolbar' ? await plugin.queue.getCurrentCard() : undefined;
-      const cardId = queueCard?._id || widget?.cardId;
-      const remId = queueCard?.remId || widget?.remId;
-      if (!cardId || (!remId && !queueCard)) return;
+      if (!widget?.cardId || !widget.remId) return;
       const [rem, card] = await Promise.all([
-        queueCard ? queueCard.getRem() : plugin.rem.findOne(remId), queueCard || plugin.card.findOne(cardId),
+        plugin.rem.findOne(widget.remId), plugin.card.findOne(widget.cardId),
       ]);
       if (!rem || !card) return;
       const cardType = await card.getType();
-      const revealed = placement === 'toolbar' ? await plugin.queue.hasRevealedAnswer() : !!widget.revealed;
+      const revealed = !!widget.revealed;
       const { config, scopeIds } = await getEffectiveConfig(plugin, rem._id);
       return { cardId: card._id, rem, cardType, revealed, config, scopeIds };
     },
@@ -47,7 +43,6 @@ function SmartTTSWidget() {
   }), [plugin]);
 
   useEffect(() => { void controller.load(); return () => controller.clear(); }, [controller]);
-  useAPIEventListener(QueueEvent.QueueLoadCard, undefined, () => { if (position === 'toolbar') void controller.load(); });
   useAPIEventListener(QueueEvent.RevealAnswer, undefined, () => controller.reveal());
   useAPIEventListener(QueueEvent.QueueCompleteCard, undefined, () => controller.clear());
   useAPIEventListener(QueueEvent.QueueExit, undefined, () => controller.clear());

@@ -149,5 +149,3 @@
 .rr-tts-position-right .rr-tts-bar { flex-direction: column; align-items: stretch; }
 .rr-tts-position-right .rr-tts-button { justify-content: center; }
 .rr-tts-position-under { justify-content: center; }
-.rr-tts-position-toolbar { width: auto; padding: 0; }
-.rr-tts-position-toolbar .rr-tts-bar { flex-wrap: nowrap; }
