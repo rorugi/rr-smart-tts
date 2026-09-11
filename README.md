@@ -1,7 +1,13 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.8
+## What's new in 0.4.9
+
+- Cloze omission adds no timed silence; speech continues when the preceding segment ends.
+- Top registers right-aligned controls in RemNote’s QueueBelowTopBar slot, including when no other widget uses it.
+- Stop now has an outlined square icon in every layout.
+
+## Added in 0.4.8
 
 - Cloze question playback no longer appends the back/answer field.
 - Hidden cloze pauses now last 0.5 seconds; settings and preview show the updated duration.

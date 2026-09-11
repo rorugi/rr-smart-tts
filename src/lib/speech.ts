@@ -3,14 +3,11 @@ import { resolveVoice } from './voices';
 import { CLOZE_PAUSE } from './pause';
 
 let keepAliveTimer: ReturnType<typeof setInterval> | undefined;
-let pauseTimer: ReturnType<typeof setTimeout> | undefined;
 let generation = 0;
 let current: SpeechSynthesisUtterance | undefined;
 
 export function stopSpeech() {
   generation += 1;
-  if (pauseTimer) clearTimeout(pauseTimer);
-  pauseTimer = undefined;
   if (current) { current.onend = null; current.onerror = null; }
   current = undefined;
   if (keepAliveTimer) clearInterval(keepAliveTimer);
@@ -69,11 +66,7 @@ function playSequence(text: string, config: SmartTTSConfig, side: PhysicalSide, 
     const part = parts[index++];
     const done = () => {
       if (request !== generation || index >= parts.length) return;
-      pauseTimer = setTimeout(() => {
-        pauseTimer = undefined;
-        if (request !== generation) return;
-        try { advance(); } catch { stopSpeech(); report('Speech could not start. Try another voice.'); }
-      }, 500);
+      try { advance(); } catch { stopSpeech(); report('Speech could not start. Try another voice.'); }
     };
     if (part.trim()) play(part, config, side, report, done);
     else if (parts.length > 1) done();

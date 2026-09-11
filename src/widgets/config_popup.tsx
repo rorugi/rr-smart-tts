@@ -255,6 +255,7 @@ function ConfigPopup() {
           <select id="controls-position" className="rr-tts-select" value={controlsPosition} onChange={(e) => setControlsPosition(e.target.value as ControlsPosition)}>
             <option value="right">Right</option>
             <option value="under">Flashcard Under</option>
+            <option value="top">Top</option>
           </select>
           <div className="rr-tts-scope-note">Applies to all decks. Save to move the controls. Right stacks the buttons vertically.</div>
         </div>
@@ -299,7 +300,7 @@ function ConfigPopup() {
 
       <div className="rr-tts-section">
         <h3>Content filters</h3>
-        <label className="rr-tts-check"><input type="checkbox" checked={config.pauseCloze} onChange={(e) => update('pauseCloze', e.target.checked)} /> Pause at hidden cloze (0.5 seconds) instead of saying “blank”</label>
+        <label className="rr-tts-check"><input type="checkbox" checked={config.pauseCloze} onChange={(e) => update('pauseCloze', e.target.checked)} /> Skip hidden cloze instead of saying “blank” (no added delay)</label>
         <div className="rr-tts-grid">
           <label className="rr-tts-check"><input type="checkbox" checked={config.removeParentheses} onChange={(e) => update('removeParentheses', e.target.checked)} /> Remove (parentheses)</label>
           <label className="rr-tts-check"><input type="checkbox" checked={config.removeSquareBrackets} onChange={(e) => update('removeSquareBrackets', e.target.checked)} /> Remove [square brackets]</label>
