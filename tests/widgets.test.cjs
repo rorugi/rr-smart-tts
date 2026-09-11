@@ -286,6 +286,21 @@ test('Top creates a below-top-bar widget and follows card transitions without to
   assert.equal(h.spoken.length, 2); assert.equal(h.spoken[1].text, 'next');
 });
 
+test('native sizing has the same root before and after delayed Top settings load', async () => {
+  setup();
+  const pending = deferred();
+  const get = api.storage.getSynced;
+  api.storage.getSynced = key => key === 'rr-smart-tts:controls-position:v1' ? pending.promise : get(key);
+  await mount(Toolbar);
+  const observedRoot = root.root.findByType('div');
+  assert.equal(root.toJSON().type, 'div');
+  assert.equal(root.root.findAllByType('button').length, 0);
+  await act(async () => { pending.resolve('top'); await tick(); });
+  assert.equal(root.root.findAllByType('div')[0], observedRoot);
+  assert.ok(root.root.findByProps({ role: 'toolbar' }));
+  assert.equal(button('Front').props.disabled, false);
+});
+
 test('Top stays visible and loads automatically when the queue becomes ready', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const h = setup(); h.values.set('rr-smart-tts:controls-position:v1', 'top');
