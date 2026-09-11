@@ -1,7 +1,11 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.10
+## What's new in 0.4.11
+
+- Keep the controls root mounted during startup so native RemNote can observe its height before settings finish loading.
+
+## Added in 0.4.10
 
 - Top uses a dedicated full-width row with centered controls and a stable minimum height.
 - Controls remain visible while a card loads; startup retries are serial, bounded, and cancelled when review ends.
