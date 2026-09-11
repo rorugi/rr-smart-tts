@@ -6,17 +6,18 @@ type CardTypeLike = any;
 type RemLike = any;
 import type { SmartTTSConfig } from './config';
 import { richTextToSpeechText } from './filter';
+import { CLOZE_PAUSE } from './pause';
 
 const isClozeCard = (cardType?: CardTypeLike): cardType is { clozeId: string } =>
   typeof cardType === 'object' && cardType !== null && 'clozeId' in cardType;
 
-function withClozeBlank(richText: RichTextInterface | undefined, clozeId?: string): RichTextInterface {
+function withClozeBlank(richText: RichTextInterface | undefined, clozeId?: string, pause = false): RichTextInterface {
   if (!richText) return [];
   if (!clozeId) return richText;
 
   return richText.map((node: any) => {
     if (typeof node === 'object' && node && 'cId' in node && node.cId === clozeId) {
-      return 'blank';
+      return pause ? CLOZE_PAUSE : 'blank';
     }
     return node;
   }) as RichTextInterface;
@@ -33,7 +34,7 @@ export async function getSemanticFrontText(
     const combined = ((contextRem.text || []) as any[])
       .concat([' '])
       .concat((contextRem.backText || []) as any[]);
-    return richTextToSpeechText(plugin, withClozeBlank(combined as RichTextInterface, cardType.clozeId), config);
+    return richTextToSpeechText(plugin, withClozeBlank(combined as RichTextInterface, cardType.clozeId, config.pauseCloze), config);
   }
   return richTextToSpeechText(plugin, contextRem.text, config);
 }

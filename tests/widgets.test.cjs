@@ -239,13 +239,13 @@ test('card-scoped loading works before global queue APIs are ready and hides voi
   assert.equal(root.root.findAllByType('button').length, 3);
 });
 
-test('position selection has exactly three choices and saves globally', async () => {
+test('position selection has exactly two choices and saves globally', async () => {
   const h = setup(); await mount(Popup);
   const select = root.root.findByProps({ id: 'controls-position' });
-  assert.deepEqual(select.findAllByType('option').map(o => o.children.join('')), ['Right', 'Flashcard Under', 'Toolbar']);
-  await act(async () => { select.props.onChange({ target: { value: 'toolbar' } }); });
+  assert.deepEqual(select.findAllByType('option').map(o => o.children.join('')), ['Right', 'Flashcard Under']);
+  await act(async () => { select.props.onChange({ target: { value: 'under' } }); });
   await act(async () => { button('Save').props.onClick(); await tick(); });
-  assert.equal(h.values.get('rr-smart-tts:controls-position:v1'), 'toolbar');
+  assert.equal(h.values.get('rr-smart-tts:controls-position:v1'), 'under');
 });
 test('Right stacks controls, location changes keep Stop text-only and avoid extra speech', async () => {
   const h = setup(); h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalFront: true });
@@ -256,19 +256,14 @@ test('Right stacks controls, location changes keep Stop text-only and avoid extr
   assert.ok(root.root.findByProps({ className: 'rr-tts-review-host rr-tts-position-under' }));
   assert.equal(h.spoken.length, 1);
 });
-test('toolbar registration moves a single widget and reloads later cards', async () => {
-  const h = setup(); const registered = [], removed = [];
+test('old Toolbar preference migrates to Right without registering Toolbar', async () => {
+  const h = setup(); h.values.set('rr-smart-tts:controls-position:v1', 'toolbar');
+  const registered = [];
   api.app.registerWidget = async (...args) => registered.push(args);
-  api.app.unregisterWidget = async (...args) => removed.push(args);
-  api.app.registerCSS = async () => {}; api.app.registerMenuItem = async () => {}; api.app.registerCommand = async () => {};
+  api.app.unregisterWidget = async () => {}; api.app.registerCSS = async () => {};
+  api.app.registerMenuItem = async () => {}; api.app.registerCommand = async () => {};
   await activate(api);
-  await act(async () => { await api.storage.setSynced('rr-smart-tts:controls-position:v1', 'toolbar'); await tick(); });
-  assert.equal(registered.filter(r => r[0] === 'smart_tts').at(-1)[1], 'QueueToolbar');
-  assert.deepEqual(removed.at(-1), ['smart_tts', 'FlashcardUnder']);
-  h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalFront: true });
-  await mount(Toolbar); assert.equal(h.spoken.length, 1);
-  await act(async () => { h.emit('complete'); await tick(); });
-  h.rems.card.text = ['next']; h.setCurrent({ _id: 'next', getRem: async () => h.rems.card, getType: async () => 'forward' });
-  await act(async () => { h.emit('load'); await tick(); });
-  assert.equal(h.spoken.length, 2); assert.equal(h.spoken[1].text, 'next');
+  assert.equal(registered.find(r => r[0] === 'smart_tts')[1], 'FlashcardUnder');
+  await mount(Toolbar);
+  assert.ok(root.root.findByProps({ className: 'rr-tts-review-host rr-tts-position-right' }));
 });
