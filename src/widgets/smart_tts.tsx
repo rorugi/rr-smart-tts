@@ -20,14 +20,18 @@ function SmartTTSWidget() {
   const controller = useMemo(() => new ReviewController({
     load: async () => {
       // Card-scoped IDs are available when this widget mounts, before global queue state settles.
+      const placement = await getControlsPosition(plugin);
       const widget = await plugin.widget.getWidgetContext<WidgetLocation.FlashcardUnder>();
-      if (!widget?.cardId || !widget.remId) return;
+      const active = placement === 'top' ? await plugin.queue.getCurrentCard() : undefined;
+      const cardId = active?._id || widget?.cardId;
+      const remId = widget?.remId;
+      if (!cardId || (!remId && !active)) return;
       const [rem, card] = await Promise.all([
-        plugin.rem.findOne(widget.remId), plugin.card.findOne(widget.cardId),
+        active ? active.getRem() : plugin.rem.findOne(remId), active || plugin.card.findOne(cardId),
       ]);
       if (!rem || !card) return;
       const cardType = await card.getType();
-      const revealed = !!widget.revealed;
+      const revealed = placement === 'top' ? await plugin.queue.hasRevealedAnswer() : !!widget.revealed;
       const { config, scopeIds } = await getEffectiveConfig(plugin, rem._id);
       return { cardId: card._id, rem, cardType, revealed, config, scopeIds };
     },
@@ -43,6 +47,9 @@ function SmartTTSWidget() {
   }), [plugin]);
 
   useEffect(() => { void controller.load(); return () => controller.clear(); }, [controller]);
+  useAPIEventListener(QueueEvent.QueueLoadCard, undefined, () => {
+    void getControlsPosition(plugin).then(value => { if (value === 'top') void controller.load(); });
+  });
   useAPIEventListener(QueueEvent.RevealAnswer, undefined, () => controller.reveal());
   useAPIEventListener(QueueEvent.QueueCompleteCard, undefined, () => controller.clear());
   useAPIEventListener(QueueEvent.QueueExit, undefined, () => controller.clear());
@@ -62,7 +69,7 @@ function SmartTTSWidget() {
       <div className="rr-tts-bar" role="group" aria-label="Card speech controls">
         <button className="rr-tts-button rr-tts-play-button" aria-label="Front" onClick={() => controller.play('front')}><SpeakerIcon />Front</button>
         <button className="rr-tts-button rr-tts-play-button" aria-label="Back" onClick={() => controller.play('back')}><SpeakerIcon />Back</button>
-        <button className="rr-tts-button" aria-label="Stop" onClick={() => controller.stop()}>Stop</button>
+        <button className="rr-tts-button" aria-label="Stop" onClick={() => controller.stop()}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" focusable="false"><rect x="5" y="5" width="14" height="14" rx="1" /></svg>Stop</button>
       </div>
     </div>
   );
