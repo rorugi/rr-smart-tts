@@ -82,7 +82,7 @@ if (isProd) {
   config.optimization = { minimize: true, minimizer: [new ESBuildMinifyPlugin()] };
 } else {
   config.devServer = {
-    port: 8080,
+    port: 8081,
     host: '0.0.0.0',
     open: false,
     hot: true,
