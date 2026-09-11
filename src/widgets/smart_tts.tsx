@@ -1,6 +1,7 @@
 import { QueueEvent, WidgetLocation, StorageEvents, renderWidget, useAPIEventListener, usePlugin } from '@remnote/plugin-sdk';
 import { useEffect, useMemo, useState } from 'react';
 import '../style.css';
+import { CONTROLS_POSITION_KEY, ControlsPosition, getControlsPosition } from '../lib/controls_position';
 import { configStorageKey, getEffectiveConfig } from '../lib/config';
 import { getSemanticBackText, getSemanticFrontText } from '../lib/card_text';
 import { speakPreparedText, stopSpeech } from '../lib/speech';
@@ -8,6 +9,9 @@ import { ReviewContext, ReviewController } from '../lib/review';
 
 function SmartTTSWidget() {
   const plugin = usePlugin();
+  const [position, setPosition] = useState<ControlsPosition>('right');
+  useEffect(() => { void getControlsPosition(plugin).then(setPosition); }, [plugin]);
+  useAPIEventListener(StorageEvents.StorageSyncedChange, CONTROLS_POSITION_KEY, () => { void getControlsPosition(plugin).then(setPosition); });
   const [context, setContext] = useState<ReviewContext>();
   const reportError = (message: string) => { void plugin.app.toast(message); };
   const reportSpeech = (message: string) => {
@@ -16,14 +20,18 @@ function SmartTTSWidget() {
   const controller = useMemo(() => new ReviewController({
     load: async () => {
       // Card-scoped IDs are available when this widget mounts, before global queue state settles.
+      const placement = await getControlsPosition(plugin);
       const widget = await plugin.widget.getWidgetContext<WidgetLocation.FlashcardUnder>();
-      if (!widget?.remId || !widget.cardId) return;
+      const queueCard = placement === 'toolbar' ? await plugin.queue.getCurrentCard() : undefined;
+      const cardId = queueCard?._id || widget?.cardId;
+      const remId = queueCard?.remId || widget?.remId;
+      if (!cardId || (!remId && !queueCard)) return;
       const [rem, card] = await Promise.all([
-        plugin.rem.findOne(widget.remId), plugin.card.findOne(widget.cardId),
+        queueCard ? queueCard.getRem() : plugin.rem.findOne(remId), queueCard || plugin.card.findOne(cardId),
       ]);
       if (!rem || !card) return;
       const cardType = await card.getType();
-      const revealed = !!widget.revealed;
+      const revealed = placement === 'toolbar' ? await plugin.queue.hasRevealedAnswer() : !!widget.revealed;
       const { config, scopeIds } = await getEffectiveConfig(plugin, rem._id);
       return { cardId: card._id, rem, cardType, revealed, config, scopeIds };
     },
@@ -39,6 +47,7 @@ function SmartTTSWidget() {
   }), [plugin]);
 
   useEffect(() => { void controller.load(); return () => controller.clear(); }, [controller]);
+  useAPIEventListener(QueueEvent.QueueLoadCard, undefined, () => { if (position === 'toolbar') void controller.load(); });
   useAPIEventListener(QueueEvent.RevealAnswer, undefined, () => controller.reveal());
   useAPIEventListener(QueueEvent.QueueCompleteCard, undefined, () => controller.clear());
   useAPIEventListener(QueueEvent.QueueExit, undefined, () => controller.clear());
@@ -54,7 +63,7 @@ function SmartTTSWidget() {
 
   if (!context?.config.enabled) return <></>;
   return (
-    <div className="rr-tts-review-host">
+    <div className={"rr-tts-review-host rr-tts-position-" + position}>
       <div className="rr-tts-bar" role="group" aria-label="Card speech controls">
         <button className="rr-tts-button rr-tts-play-button" aria-label="Front" onClick={() => controller.play('front')}><SpeakerIcon />Front</button>
         <button className="rr-tts-button rr-tts-play-button" aria-label="Back" onClick={() => controller.play('back')}><SpeakerIcon />Back</button>
