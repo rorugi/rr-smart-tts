@@ -276,27 +276,36 @@ test('cloze pause replaces only the tested hidden cloze and merges formatting fr
   assert.equal(await getSemanticFrontText(plugin, rem, { clozeId: 'one' }, config), 'A' + CLOZE_PAUSE + 'and tree');
   assert.equal(await getSemanticBackText(plugin, rem, { clozeId: 'one' }, config), 'A red house and tree');
 });
-test('speech waits one second at the cloze and never speaks the pause token', t => {
+test('speech waits half a second at the cloze and never speaks the pause token', t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   speakText('before' + CLOZE_PAUSE + 'after', DEFAULT_CONFIG);
   assert.deepEqual(spoken.map(u => u.text), ['before']);
   spoken[0].onend();
-  t.mock.timers.tick(999); assert.equal(spoken.length, 1);
+  t.mock.timers.tick(499); assert.equal(spoken.length, 1);
   t.mock.timers.tick(1); assert.deepEqual(spoken.map(u => u.text), ['before', 'after']);
 });
 test('Stop and replacement cancel speech queued after a cloze pause', t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   speakText('before' + CLOZE_PAUSE + 'stale', DEFAULT_CONFIG);
-  spoken[0].onend(); stopSpeech(); t.mock.timers.tick(1000);
+  spoken[0].onend(); stopSpeech(); t.mock.timers.tick(500);
   assert.equal(spoken.length, 1);
   speakText('again' + CLOZE_PAUSE + 'stale', DEFAULT_CONFIG);
-  spoken[1].onend(); speakText('replacement', DEFAULT_CONFIG); t.mock.timers.tick(1000);
+  spoken[1].onend(); speakText('replacement', DEFAULT_CONFIG); t.mock.timers.tick(500);
   assert.deepEqual(spoken.map(u => u.text), ['before', 'again', 'replacement']);
 });
 test('a leading cloze pauses before speech and a trailing cloze speaks no marker', t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   speakText(CLOZE_PAUSE + 'answer' + CLOZE_PAUSE, DEFAULT_CONFIG);
-  assert.equal(spoken.length, 0); t.mock.timers.tick(1000);
-  assert.equal(spoken[0].text, 'answer'); spoken[0].onend(); t.mock.timers.tick(1000);
+  assert.equal(spoken.length, 0); t.mock.timers.tick(500);
+  assert.equal(spoken[0].text, 'answer'); spoken[0].onend(); t.mock.timers.tick(500);
   assert.equal(spoken.length, 1);
+});
+
+test('cloze question never reads the back field with either blank or pause mode', async () => {
+  const rem = { text: ['The ', { i: 'm', cId: 'one', text: 'cat' }, ' sleeps.'], backText: ['SECRET BACK ANSWER'] };
+  assert.equal(await getSemanticFrontText(plugin, rem, { clozeId: 'one' }, DEFAULT_CONFIG), 'The blank sleeps.');
+  const text = await getSemanticFrontText(plugin, rem, { clozeId: 'one' }, clampConfig({ pauseCloze: true }));
+  assert.equal(text, 'The' + CLOZE_PAUSE + 'sleeps.');
+  assert.ok(!text.includes('SECRET'));
+  assert.equal(await getSemanticBackText(plugin, rem, { clozeId: 'one' }, DEFAULT_CONFIG), 'The cat sleeps. SECRET BACK ANSWER');
 });

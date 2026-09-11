@@ -31,10 +31,8 @@ export async function getSemanticFrontText(
 ): Promise<string> {
   if (!contextRem) return '';
   if (isClozeCard(cardType)) {
-    const combined = ((contextRem.text || []) as any[])
-      .concat([' '])
-      .concat((contextRem.backText || []) as any[]);
-    return richTextToSpeechText(plugin, withClozeBlank(combined as RichTextInterface, cardType.clozeId, config.pauseCloze), config);
+    // Question playback must not append the answer/back field.
+    return richTextToSpeechText(plugin, withClozeBlank(contextRem.text, cardType.clozeId, config.pauseCloze), config);
   }
   return richTextToSpeechText(plugin, contextRem.text, config);
 }
