@@ -83,15 +83,17 @@ function SmartTTSWidget() {
     return () => keys.forEach((key) => plugin.event.removeListener(StorageEvents.StorageSyncedChange, key, refresh));
   }, [plugin, controller, scopeKeys]);
 
-  if ((context && !context.config.enabled) || (!context && position !== 'top')) return <></>;
+  const visible = !(context && !context.config.enabled) && (!!context || position === 'top');
   const ready = !!context;
   return (
-    <div className={"rr-tts-review-host rr-tts-position-" + position}>
-      <div className="rr-tts-bar" role={position === 'top' ? 'toolbar' : 'group'} aria-label="Card speech controls">
+    // The native SDK observes mountDiv.firstChild once during activation.
+    // Keep this element mounted even before asynchronous settings/card loads finish.
+    <div className={"rr-tts-review-host rr-tts-position-" + position} style={visible ? undefined : { padding: 0, minHeight: 0, border: 0 }}>
+      {visible && <div className="rr-tts-bar" role={position === 'top' ? 'toolbar' : 'group'} aria-label="Card speech controls">
         <button className="rr-tts-button rr-tts-play-button" aria-label="Front" disabled={!ready} onClick={() => controller.play('front')}><SpeakerIcon />Front</button>
         <button className="rr-tts-button rr-tts-play-button" aria-label="Back" disabled={!ready} onClick={() => controller.play('back')}><SpeakerIcon />Back</button>
         <button className="rr-tts-button" aria-label="Stop" onClick={() => controller.stop()}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" focusable="false"><rect x="5" y="5" width="14" height="14" rx="1" /></svg>Stop</button>
-      </div>
+      </div>}
     </div>
   );
 }
