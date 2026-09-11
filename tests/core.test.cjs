@@ -268,3 +268,35 @@ test('disable prevents manual playback immediately after refresh', async () => {
   h.setConfig(clampConfig({ enabled: false })); await h.controller.refreshConfig(); h.controller.play('front');
   assert.equal(h.plays.length, 1);
 });
+
+const { CLOZE_PAUSE } = require('../src/lib/pause');
+test('cloze pause replaces only the tested hidden cloze and merges formatting fragments', async () => {
+  const rem = { text: ['A ', { i: 'm', cId: 'one', text: 'red' }, { i: 'm', cId: 'one', b: true, text: ' house' }, ' and ', { i: 'm', cId: 'two', text: 'tree' }] };
+  const config = clampConfig({ pauseCloze: true });
+  assert.equal(await getSemanticFrontText(plugin, rem, { clozeId: 'one' }, config), 'A' + CLOZE_PAUSE + 'and tree');
+  assert.equal(await getSemanticBackText(plugin, rem, { clozeId: 'one' }, config), 'A red house and tree');
+});
+test('speech waits one second at the cloze and never speaks the pause token', t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  speakText('before' + CLOZE_PAUSE + 'after', DEFAULT_CONFIG);
+  assert.deepEqual(spoken.map(u => u.text), ['before']);
+  spoken[0].onend();
+  t.mock.timers.tick(999); assert.equal(spoken.length, 1);
+  t.mock.timers.tick(1); assert.deepEqual(spoken.map(u => u.text), ['before', 'after']);
+});
+test('Stop and replacement cancel speech queued after a cloze pause', t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  speakText('before' + CLOZE_PAUSE + 'stale', DEFAULT_CONFIG);
+  spoken[0].onend(); stopSpeech(); t.mock.timers.tick(1000);
+  assert.equal(spoken.length, 1);
+  speakText('again' + CLOZE_PAUSE + 'stale', DEFAULT_CONFIG);
+  spoken[1].onend(); speakText('replacement', DEFAULT_CONFIG); t.mock.timers.tick(1000);
+  assert.deepEqual(spoken.map(u => u.text), ['before', 'again', 'replacement']);
+});
+test('a leading cloze pauses before speech and a trailing cloze speaks no marker', t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  speakText(CLOZE_PAUSE + 'answer' + CLOZE_PAUSE, DEFAULT_CONFIG);
+  assert.equal(spoken.length, 0); t.mock.timers.tick(1000);
+  assert.equal(spoken[0].text, 'answer'); spoken[0].onend(); t.mock.timers.tick(1000);
+  assert.equal(spoken.length, 1);
+});

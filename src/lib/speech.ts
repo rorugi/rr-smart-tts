@@ -1,12 +1,16 @@
 import type { PhysicalSide, SmartTTSConfig } from './config';
 import { resolveVoice } from './voices';
+import { CLOZE_PAUSE } from './pause';
 
 let keepAliveTimer: ReturnType<typeof setInterval> | undefined;
+let pauseTimer: ReturnType<typeof setTimeout> | undefined;
 let generation = 0;
 let current: SpeechSynthesisUtterance | undefined;
 
 export function stopSpeech() {
   generation += 1;
+  if (pauseTimer) clearTimeout(pauseTimer);
+  pauseTimer = undefined;
   if (current) { current.onend = null; current.onerror = null; }
   current = undefined;
   if (keepAliveTimer) clearInterval(keepAliveTimer);
@@ -14,7 +18,7 @@ export function stopSpeech() {
   try { globalThis.speechSynthesis?.cancel(); } catch { /* Engine unavailable. */ }
 }
 
-function play(text: string, config: SmartTTSConfig, side: PhysicalSide, report: (status: string) => void) {
+function play(text: string, config: SmartTTSConfig, side: PhysicalSide, report: (status: string) => void, done = () => {}) {
   if (!text.trim()) { report('Nothing remains after filtering.'); return; }
   if (typeof speechSynthesis === 'undefined' || typeof SpeechSynthesisUtterance === 'undefined') {
     report('Speech is not available in this RemNote context.');
@@ -36,7 +40,11 @@ function play(text: string, config: SmartTTSConfig, side: PhysicalSide, report: 
     if (keepAliveTimer) clearInterval(keepAliveTimer);
     keepAliveTimer = undefined;
   };
-  utterance.onend = finish;
+  utterance.onend = () => {
+    if (current !== utterance) return;
+    finish();
+    done();
+  };
   utterance.onerror = (event) => {
     if (current !== utterance) return;
     finish();
@@ -52,9 +60,31 @@ function play(text: string, config: SmartTTSConfig, side: PhysicalSide, report: 
   }
 }
 
+function playSequence(text: string, config: SmartTTSConfig, side: PhysicalSide, report: (status: string) => void) {
+  const request = generation;
+  const parts = text.split(CLOZE_PAUSE);
+  let index = 0;
+  const advance = () => {
+    if (request !== generation) return;
+    const part = parts[index++];
+    const done = () => {
+      if (request !== generation || index >= parts.length) return;
+      pauseTimer = setTimeout(() => {
+        pauseTimer = undefined;
+        if (request !== generation) return;
+        try { advance(); } catch { stopSpeech(); report('Speech could not start. Try another voice.'); }
+      }, 1000);
+    };
+    if (part.trim()) play(part, config, side, report, done);
+    else if (parts.length > 1) done();
+    else report('Nothing remains after filtering.');
+  };
+  advance();
+}
+
 export function speakText(text: string, config: SmartTTSConfig, side: PhysicalSide = 'front', report = (_: string) => {}) {
   stopSpeech();
-  try { play(text, config, side, report); }
+  try { playSequence(text, config, side, report); }
   catch { stopSpeech(); report('Speech could not start. Try another voice.'); }
 }
 
@@ -72,7 +102,7 @@ export async function speakPreparedText(
   }
   if (request !== generation) return;
   try {
-    play(text, config, side, report);
+    playSequence(text, config, side, report);
   } catch {
     stopSpeech();
     report('The ' + side + ' voice could not start. Try another voice or Automatic for chosen language.');

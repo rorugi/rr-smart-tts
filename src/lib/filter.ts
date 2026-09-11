@@ -1,5 +1,6 @@
 import type { RNPlugin, RichTextInterface } from '@remnote/plugin-sdk';
 import type { SmartTTSConfig } from './config';
+import { CLOZE_PAUSE } from './pause';
 
 type RichNode = any;
 
@@ -105,7 +106,8 @@ export async function richTextToSpeechText(
 ): Promise<string> {
   const filtered = filterFormatting(richText, config);
   const plain = await plugin.richText.toString(filtered || []);
-  return applyPlainTextFilters(plain || '', config);
+  // Protect timed gaps from bracket/regex filters, and merge adjacent cloze fragments.
+  return (plain || '').split(CLOZE_PAUSE).map(part => applyPlainTextFilters(part, config)).join(CLOZE_PAUSE).replace(/\uE000(?:\s*\uE000)+/g, CLOZE_PAUSE);
 }
 
 export function validateRegexLines(lines: string[]): string[] {

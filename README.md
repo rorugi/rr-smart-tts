@@ -1,7 +1,13 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.6
+## What's new in 0.4.7
+
+- Removes Toolbar; previous Toolbar preferences fall back to Right.
+- Optional **Pause at hidden cloze (1 second)** replaces the question-side blank with a timed gap; the revealed answer reads normally. Stop and card transitions cancel pending gaps.
+- Flashcard Under is a plugin slot in the scrolling card area; it does not attach to the native TTS fixed footer.
+
+## Added in 0.4.6
 
 - Controls position offers Right (vertical stack), Flashcard Under (horizontal row), and Toolbar.
 - Position applies globally and is saved with Save; existing installations default to Right.

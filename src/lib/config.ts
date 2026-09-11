@@ -13,6 +13,7 @@ export type SmartTTSConfig = {
   autoPlayAnswer: boolean;
   autoPlayPhysicalFront: boolean;
   autoPlayPhysicalBack: boolean;
+  pauseCloze: boolean;
   skipItalic: boolean;
   skipBold: boolean;
   removeParentheses: boolean;
@@ -47,6 +48,7 @@ export const DEFAULT_CONFIG: SmartTTSConfig = {
   autoPlayAnswer: false,
   autoPlayPhysicalFront: false,
   autoPlayPhysicalBack: false,
+  pauseCloze: false,
   skipItalic: true,
   skipBold: false,
   removeParentheses: true,
@@ -81,6 +83,7 @@ export const clampConfig = (value?: Partial<SmartTTSConfig> | null): SmartTTSCon
     autoPlayAnswer: raw.autoPlayAnswer ?? raw.autoPlayBack ?? DEFAULT_CONFIG.autoPlayAnswer,
     autoPlayPhysicalFront: raw.autoPlayPhysicalFront ?? DEFAULT_CONFIG.autoPlayPhysicalFront,
     autoPlayPhysicalBack: raw.autoPlayPhysicalBack ?? DEFAULT_CONFIG.autoPlayPhysicalBack,
+    pauseCloze: raw.pauseCloze === true,
     frontVoice: voice(raw.frontVoice),
     backVoice: voice(raw.backVoice),
     rate: number(raw.rate, DEFAULT_CONFIG.rate, 0.5, 2),

@@ -1,6 +1,7 @@
 import { renderWidget, usePlugin, useRunAsync } from '@remnote/plugin-sdk';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '../style.css';
+import { displaySpeechText } from '../lib/pause';
 import { CONTROLS_POSITION_KEY, ControlsPosition, getControlsPosition } from '../lib/controls_position';
 import {
   ConfigScope,
@@ -122,7 +123,7 @@ function ConfigPopup() {
     if (!previewCard) return;
     const extract = previewSide === 'front' ? getSemanticFrontText : getSemanticBackText;
     const unfiltered = {
-      ...liveConfig, skipItalic: false, skipBold: false, removeParentheses: false,
+      ...liveConfig, pauseCloze: false, skipItalic: false, skipBold: false, removeParentheses: false,
       removeSquareBrackets: false, removeCurlyBraces: false, removeUrls: false, customRegex: [],
     };
     void Promise.all([
@@ -254,7 +255,6 @@ function ConfigPopup() {
           <select id="controls-position" className="rr-tts-select" value={controlsPosition} onChange={(e) => setControlsPosition(e.target.value as ControlsPosition)}>
             <option value="right">Right</option>
             <option value="under">Flashcard Under</option>
-            <option value="toolbar">Toolbar</option>
           </select>
           <div className="rr-tts-scope-note">Applies to all decks. Save to move the controls. Right stacks the buttons vertically.</div>
         </div>
@@ -299,6 +299,7 @@ function ConfigPopup() {
 
       <div className="rr-tts-section">
         <h3>Content filters</h3>
+        <label className="rr-tts-check"><input type="checkbox" checked={config.pauseCloze} onChange={(e) => update('pauseCloze', e.target.checked)} /> Pause at hidden cloze (1 second) instead of saying “blank”</label>
         <div className="rr-tts-grid">
           <label className="rr-tts-check"><input type="checkbox" checked={config.removeParentheses} onChange={(e) => update('removeParentheses', e.target.checked)} /> Remove (parentheses)</label>
           <label className="rr-tts-check"><input type="checkbox" checked={config.removeSquareBrackets} onChange={(e) => update('removeSquareBrackets', e.target.checked)} /> Remove [square brackets]</label>
@@ -334,7 +335,7 @@ function ConfigPopup() {
           <div className="rr-tts-scope-note">Sample text tests content filters. Preview a current card to test italic and bold filtering too.</div>
         </div>}
         <p>Spoken text</p>
-        <div className="rr-tts-preview">{previewCard && !cardPreview ? 'Preparing…' : preview || 'Nothing remains after filtering.'}</div>
+        <div className="rr-tts-preview">{previewCard && !cardPreview ? 'Preparing…' : displaySpeechText(preview) || 'Nothing remains after filtering.'}</div>
         <div className="rr-tts-row" style={{ marginTop: 10 }}>
           <button className="rr-tts-button" disabled={previewBusy || Boolean(previewCard && !cardPreview) || !preview || invalidRegex.length > 0}
             onClick={() => speakText(preview, liveConfig, previewSide, setVoiceStatus)}>▶ Test {previewSide}</button>
