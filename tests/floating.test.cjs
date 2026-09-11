@@ -27,7 +27,7 @@ function setup(current = Promise.resolve(undefined)) {
 test('one right-hand group survives repeated card events and closes on exit', async () => {
   const h = setup(); const detach = attachFloatingControls(h.plugin);
   h.emit(QueueEvent.QueueEnter); h.emit(QueueEvent.QueueLoadCard); await tick();
-  assert.deepEqual(h.opened, [['smart_tts', { right: 16, bottom: 96 }, undefined, false]]);
+  assert.deepEqual(h.opened, [['smart_tts', { right: 16, top: 96 }, 'rr-smart-tts-floating-host', false]]);
   h.emit(QueueEvent.QueueExit); await tick(); assert.deepEqual(h.closed, ['controls']);
   await detach(); assert.equal(h.listeners.size, 0);
 });

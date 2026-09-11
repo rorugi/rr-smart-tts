@@ -10,6 +10,8 @@
 .rr-tts-bar {
   display: flex;
   flex-wrap: wrap;
+  width: 280px;
+  max-width: 100%;
   align-items: center;
   gap: 6px;
   padding: 10px;
@@ -42,11 +44,8 @@
 .rr-tts-panel {
   width: 100%;
   max-width: 100%;
-  /* The popup host has a numeric height. Fill its actual viewport, including
-     when RemNote constrains it on small screens; never combine this with auto. */
-  height: min(560px, 100vh);
-  height: min(560px, 100dvh);
-  max-height: 100%;
+  height: auto;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -54,8 +53,9 @@
 }
 
 .rr-tts-panel-body {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 400px;
+  height: 400px;
+  min-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px 24px;
@@ -68,7 +68,7 @@
   padding: 12px 24px;
 }
 
-.rr-tts-panel-loading { padding: 24px; }
+.rr-tts-panel-loading { height: 460px; padding: 24px; }
 
 .rr-tts-title { margin: 0 0 4px; font-size: 22px; font-weight: 750; }
 .rr-tts-subtitle { margin: 0 0 18px; color: var(--rr-tts-muted); font-size: 13px; line-height: 1.45; }
@@ -137,3 +137,5 @@
 .rr-tts-icon-button:hover {
   border-color: var(--rr-tts-accent);
 }
+
+.rr-tts-bar .rr-tts-button { flex: 0 0 auto; white-space: nowrap; }

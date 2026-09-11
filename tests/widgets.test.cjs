@@ -10,7 +10,7 @@ const originalLoad = Module._load;
 Module._load = function (name, ...args) {
   if (name === '@remnote/plugin-sdk') return {
     declareIndexPlugin: (onActivate) => { activate = onActivate; },
-    WidgetLocation: { FloatingWidget: 'FloatingWidget', Popup: 'Popup' },
+    WidgetLocation: { FloatingWidget: 'FloatingWidget', Popup: 'Popup', QueueToolbar: 'QueueToolbar', FlashcardUnder: 'FlashcardUnder' },
     PluginCommandMenuLocation: { QueueMenu: 'QueueMenu' },
     usePlugin: () => api,
     renderWidget: (component) => { if (component.name === 'ConfigPopup') Popup = component; else Toolbar = component; },
@@ -174,16 +174,19 @@ test('toolbar completion clears old card and waits for the next load event', asy
   assert.equal(h.spoken[1].text, 'new card');
 });
 
-test('registers floating controls and a stable numeric popup height', async () => {
+test('removes legacy locations and registers intrinsically sized popup', async () => {
   setup();
-  const registered = [];
+  const registered = [], removed = [];
+  api.app.unregisterWidget = async (...args) => removed.push(args);
+  api.app.registerCSS = async () => {};
   api.app.registerWidget = async (...args) => registered.push(args);
   api.app.registerMenuItem = async () => {};
   api.app.registerCommand = async () => {};
   api.window = { openFloatingWidget: async () => 'floating', isFloatingWidgetOpen: async () => true, closeFloatingWidget: async () => {} };
   await activate(api);
   assert.equal(registered.find(([name]) => name === 'smart_tts')[1], 'FloatingWidget');
-  assert.equal(registered.find(([name]) => name === 'config_popup')[2].dimensions.height, 560);
+  assert.equal(registered.find(([name]) => name === 'config_popup')[2].dimensions.height, 'auto');
+  assert.deepEqual(removed, [['smart_tts', 'QueueToolbar'], ['smart_tts', 'FlashcardUnder'], ['config_popup', 'Popup']]);
 });
 
 test('Save and Close stay outside the scrolling settings body', async () => {

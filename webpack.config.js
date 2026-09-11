@@ -74,7 +74,7 @@ const config = {
       banner: (file) => (!file.chunk.name.includes(SANDBOX_SUFFIX) ? 'const IMPORT_META=import.meta;' : ''),
       raw: true,
     }),
-    new CopyPlugin({ patterns: [{ from: 'public', to: '' }, { from: 'README.md', to: '' }, { from: 'docs', to: 'docs' }] }),
+    new CopyPlugin({ patterns: [{ from: 'public', to: '' }, { from: 'src/style.css', to: 'App.css' }, { from: 'README.md', to: '' }, { from: 'docs', to: 'docs' }] }),
     isDevelopment ? new ReactRefreshWebpackPlugin() : undefined,
   ].filter(Boolean),
 };
