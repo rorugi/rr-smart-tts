@@ -15,13 +15,23 @@ async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardI
 }
 
 async function onActivate(plugin: ReactRNPlugin) {
+  await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueToolbar);
+  await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FlashcardUnder);
+  await plugin.app.unregisterWidget('config_popup', WidgetLocation.Popup);
+  await plugin.app.registerCSS('rr-smart-tts-floating-position', `
+    .rr-smart-tts-floating-host {
+      position: fixed !important; top: 96px !important; right: 16px !important;
+      left: auto !important; bottom: auto !important;
+      width: 280px !important; max-width: calc(100vw - 32px) !important;
+    }
+  `);
   await plugin.app.registerWidget('smart_tts', WidgetLocation.FloatingWidget, {
     dimensions: { height: 'auto', width: 280 },
   });
 
   await plugin.app.registerWidget('config_popup', WidgetLocation.Popup, {
-    // A fixed host height breaks the iframe auto-size / viewport-height loop.
-    dimensions: { height: 560, width: 720 },
+    // Measure intrinsic content; no child height depends on the popup viewport.
+    dimensions: { height: 'auto', width: 720 },
   });
   await detachControls?.();
   detachControls = attachFloatingControls(plugin);

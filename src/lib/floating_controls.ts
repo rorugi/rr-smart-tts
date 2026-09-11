@@ -13,7 +13,7 @@ export function attachFloatingControls(plugin: ReactRNPlugin): () => Promise<voi
         if (widgetId && !(await plugin.window.isFloatingWidgetOpen(widgetId))) widgetId = undefined;
         if (!widgetId) {
           widgetId = await plugin.window.openFloatingWidget(
-            'smart_tts', { right: 16, bottom: 96 }, undefined, false
+            'smart_tts', { right: 16, top: 96 }, 'rr-smart-tts-floating-host', false
           );
         }
       }
