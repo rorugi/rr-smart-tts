@@ -6,9 +6,6 @@ import {
 } from '@remnote/plugin-sdk';
 import '../style.css';
 import { getConfigScopes, getEffectiveConfig, getScopeConfig, setScopeConfig } from '../lib/config';
-import { attachFloatingControls } from '../lib/floating_controls';
-
-let detachControls: (() => Promise<void>) | undefined;
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
   await plugin.widget.openPopup('config_popup', { remId, cardId });
@@ -18,23 +15,16 @@ async function onActivate(plugin: ReactRNPlugin) {
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueToolbar);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FlashcardUnder);
   await plugin.app.unregisterWidget('config_popup', WidgetLocation.Popup);
-  await plugin.app.registerCSS('rr-smart-tts-floating-position', `
-    .rr-smart-tts-floating-host {
-      position: fixed !important; top: 96px !important; right: 16px !important;
-      left: auto !important; bottom: auto !important;
-      width: 280px !important; max-width: calc(100vw - 32px) !important;
-    }
-  `);
-  await plugin.app.registerWidget('smart_tts', WidgetLocation.FloatingWidget, {
-    dimensions: { height: 'auto', width: 280 },
+  await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FloatingWidget);
+  await plugin.app.registerCSS('rr-smart-tts-floating-position', '');
+  await plugin.app.registerWidget('smart_tts', WidgetLocation.QueueBelowTopBar, {
+    dimensions: { height: 'auto', width: '100%' },
   });
 
   await plugin.app.registerWidget('config_popup', WidgetLocation.Popup, {
     // Measure intrinsic content; no child height depends on the popup viewport.
     dimensions: { height: 'auto', width: 720 },
   });
-  await detachControls?.();
-  detachControls = attachFloatingControls(plugin);
 
   await plugin.app.registerMenuItem({
     id: 'rr-smart-tts-configure',
@@ -78,9 +68,6 @@ async function onActivate(plugin: ReactRNPlugin) {
 
 }
 
-async function onDeactivate(_: ReactRNPlugin) {
-  await detachControls?.();
-  detachControls = undefined;
-}
+async function onDeactivate(_: ReactRNPlugin) {}
 
 declareIndexPlugin(onActivate, onDeactivate);

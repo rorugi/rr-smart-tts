@@ -48,13 +48,17 @@ function SmartTTSWidget() {
     return () => keys.forEach((key) => plugin.event.removeListener(StorageEvents.StorageSyncedChange, key, refresh));
   }, [plugin, controller, scopeKeys]);
 
-  if (!context?.config.enabled) return <></>;
+  if (context && !context.config.enabled) return <></>;
+  const ready = !!context;
   return (
-    <div className="rr-tts-bar">
-      <button className="rr-tts-button rr-tts-play-button" onClick={() => controller.play('front')}>🔊 Front</button>
-      <button className="rr-tts-button rr-tts-play-button" onClick={() => controller.play('back')}>🔊 Back</button>
+    <div className="rr-tts-review-host">
+    <div className="rr-tts-bar" style={plugin.isNative ? { position: 'fixed', top: 96, right: 16, zIndex: 100 } : undefined}>
+      <button className="rr-tts-button rr-tts-play-button" disabled={!ready} onClick={() => controller.play('front')}>🔊 Front</button>
+      <button className="rr-tts-button rr-tts-play-button" disabled={!ready} onClick={() => controller.play('back')}>🔊 Back</button>
       <button className="rr-tts-button" onClick={() => { controller.stop(); setStatus('Stopped.'); }}>■ Stop</button>
-      <span className="rr-tts-status" role="status" title={status}>{status}</span>
+      <span className="rr-tts-status" role="status" title={status}>{status || (!ready ? 'Waiting for a review card…' : '')}</span>
+      {!ready && status && <button className="rr-tts-button" onClick={() => void controller.load()}>Retry</button>}
+    </div>
     </div>
   );
 }
