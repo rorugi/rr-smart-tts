@@ -16,6 +16,9 @@ function SmartTTSWidget() {
   const contextRef = useRef<ReviewContext>();
   const loadGeneration = useRef(0);
   const retryTimer = useRef<ReturnType<typeof setTimeout>>();
+  const loading = useRef(0);
+  const queueExited = useRef(false);
+  const completedCard = useRef<string>();
   const reportError = (message: string) => { void plugin.app.toast(message); };
   const reportSpeech = (message: string) => {
     if (/^(Could not|Speech |The .* voice|Nothing remains)/.test(message)) reportError(message);
@@ -26,6 +29,9 @@ function SmartTTSWidget() {
       const placement = await getControlsPosition(plugin);
       const widget = await plugin.widget.getWidgetContext<WidgetLocation.FlashcardUnder>();
       const active = placement === 'top' ? await plugin.queue.getCurrentCard().catch(() => undefined) : undefined;
+      // A persistent Top widget can retain the first card's widget context.
+      // Only the live queue identifies the current card here.
+      if (placement === 'top' && (!active || active._id === completedCard.current || queueExited.current)) return;
       const cardId = active?._id || widget?.cardId;
       const remId = widget?.remId;
       if (!cardId || (!remId && !active)) return;
@@ -59,7 +65,9 @@ function SmartTTSWidget() {
     const request = loadGeneration.current;
     let attempts = 0;
     const run = async () => {
-      await controller.load();
+      retryTimer.current = undefined;
+      loading.current += 1;
+      try { await controller.load(); } finally { loading.current -= 1; }
       if (request !== loadGeneration.current || contextRef.current) return;
       // Top mounts before the queue has a card. Retry serially, not concurrently.
       if (++attempts < 12) retryTimer.current = setTimeout(() => void run(), 250);
@@ -70,9 +78,44 @@ function SmartTTSWidget() {
   useAPIEventListener(QueueEvent.QueueLoadCard, undefined, () => {
     if (position === 'top') loadCard();
   });
+  useAPIEventListener(QueueEvent.QueueEnter, undefined, () => {
+    queueExited.current = false; completedCard.current = undefined;
+    if (position === 'top') loadCard();
+  });
   useAPIEventListener(QueueEvent.RevealAnswer, undefined, () => controller.reveal());
-  useAPIEventListener(QueueEvent.QueueCompleteCard, undefined, () => { cancelLoading(); controller.clear(); });
-  useAPIEventListener(QueueEvent.QueueExit, undefined, () => { cancelLoading(); controller.clear(); });
+  useAPIEventListener(QueueEvent.QueueCompleteCard, undefined, () => {
+    completedCard.current = contextRef.current?.cardId;
+    cancelLoading(); controller.clear();
+    if (position === 'top') loadCard();
+  });
+  useAPIEventListener(QueueEvent.QueueExit, undefined, () => {
+    queueExited.current = true; cancelLoading(); controller.clear();
+  });
+  useEffect(() => {
+    if (position !== 'top') return;
+    let disposed = false, busy = false;
+    // Persistent widgets need reconciliation when queue events precede state
+    // updates or no load event reaches this widget. Never reload an unchanged card.
+    const reconcile = async () => {
+      if (disposed || busy || queueExited.current || loading.current || retryTimer.current) return;
+      busy = true;
+      const generation = loadGeneration.current;
+      try {
+        const card = await plugin.queue.getCurrentCard();
+        if (disposed || queueExited.current || generation !== loadGeneration.current) return;
+        if (!card) {
+          completedCard.current = undefined;
+          if (contextRef.current) controller.clear();
+        } else if (card._id !== completedCard.current && card._id !== contextRef.current?.cardId) {
+          completedCard.current = undefined;
+          loadCard();
+        }
+      } catch { /* A transient queue read failure is retried on the next check. */ }
+      finally { busy = false; }
+    };
+    const timer = setInterval(() => void reconcile(), 300);
+    return () => { disposed = true; clearInterval(timer); };
+  }, [plugin, controller, position]);
   const scopeKeys = JSON.stringify(context?.scopeIds || []);
   useEffect(() => {
     const keys = (JSON.parse(scopeKeys) as string[]).map(configStorageKey);

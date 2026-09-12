@@ -1,7 +1,12 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.11
+## What's new in 0.4.12
+
+- Top refreshes from the live queue after card completion and reconciles missed card events without replaying unchanged cards.
+- Ignore stale widget card IDs during transitions; stop checking after queue exit.
+
+## Added in 0.4.11
 
 - Keep the controls root mounted during startup so native RemNote can observe its height before settings finish loading.
 
