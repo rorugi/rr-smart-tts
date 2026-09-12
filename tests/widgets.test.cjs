@@ -88,6 +88,36 @@ afterEach(async () => {
   delete global.speechSynthesis; delete global.SpeechSynthesisUtterance;
 });
 
+test('settings command passes active page and popup includes document, folder and global scopes', async () => {
+  setup(); const commands = []; let opened;
+  api.app.registerWidget = api.app.unregisterWidget = api.app.registerCSS = api.app.registerMenuItem = async () => {};
+  api.app.registerCommand = async command => commands.push(command);
+  api.window = { getFocusedPaneId: async () => 'pane', getOpenPaneRemId: async () => 'doc' };
+  api.widget.openPopup = async (name, context) => { opened = context; };
+  await activate(api);
+  const command = commands.find(c => c.id === 'rr-smart-tts-global-settings');
+  await command.action(); assert.equal(opened.remId, 'doc'); assert.equal(opened.globalOnly, undefined);
+  api.widget.getWidgetContext = async () => ({ contextData: opened });
+  await mount(Popup);
+  assert.equal(scopeSelect().props.value, 'doc');
+  assert.deepEqual(scopeSelect().findAllByType('option').map(o => o.props.value), ['doc', 'folder', '__global__']);
+  api.window.getFocusedPaneId = async () => { throw new Error('no pane'); };
+  api.focus = { getFocusedRem: async () => ({ _id: 'card' }) };
+  await command.action(); assert.equal(opened.remId, 'card');
+  api.focus.getFocusedRem = async () => undefined;
+  await command.action(); assert.equal(opened.remId, undefined);
+});
+
+test('skip cloze checkbox is in Formatting filters and persists for the document', async () => {
+  const h = setup(); await mount(Popup);
+  const section = root.root.findAllByProps({ className: 'rr-tts-section' }).find(s => s.findAllByType('h3').some(h => h.children.includes('Formatting filters')));
+  const checkbox = section.findAllByType('label').find(l => l.children.includes(' Skip cloze questions')).findByType('input');
+  assert.equal(checkbox.props.checked, false);
+  await act(async () => { checkbox.props.onChange({ target: { checked: true } }); });
+  await act(async () => { button('Save').props.onClick(); await tick(); });
+  assert.equal(h.values.get('rr-smart-tts:scope:v1:doc').skipClozeQuestions, true);
+});
+
 test('switching scopes ignores stale loads and blocks Save until selected scope is ready', async () => {
   const h = setup();
   await mount(Popup);

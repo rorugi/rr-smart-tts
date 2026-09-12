@@ -207,6 +207,29 @@ function harness(load = async () => ctx()) {
   });
   return { controller, plays, changes, errors, setConfig: (c) => { configuration = c; } };
 }
+test('skip cloze questions blocks manual and all autoplay rules until reveal', async () => {
+  const config = clampConfig({ skipClozeQuestions: true, autoPlayQuestion: true, autoPlayAnswer: true,
+    autoPlayPhysicalFront: true, autoPlayPhysicalBack: true });
+  const h = harness(async () => ctx('cloze', { cardType: { clozeId: 'one' }, config }));
+  await h.controller.load(); h.controller.play('front'); h.controller.play('back');
+  assert.equal(h.plays.length, 0);
+  h.controller.reveal(); h.controller.reveal();
+  assert.deepEqual(h.plays.map(p => p[1]), ['back']);
+  h.controller.play('front'); assert.equal(h.plays.length, 2);
+  const regular = harness(async () => ctx('regular', { config }));
+  await regular.controller.load(); assert.equal(regular.plays.length, 1);
+  assert.equal(clampConfig({}).skipClozeQuestions, false);
+});
+
+test('changing skip cloze questions applies immediately to the current question', async () => {
+  const h = harness(async () => ctx('cloze', { cardType: { clozeId: 'one' }, config: DEFAULT_CONFIG }));
+  await h.controller.load();
+  h.setConfig(clampConfig({ skipClozeQuestions: true, autoPlayQuestion: true }));
+  await h.controller.refreshConfig(); h.controller.play('back'); assert.equal(h.plays.length, 0);
+  h.setConfig(clampConfig({ skipClozeQuestions: false, autoPlayQuestion: true }));
+  await h.controller.refreshConfig(); assert.equal(h.plays.length, 1);
+});
+
 test('completing a card clears it without replaying its question', async () => {
   const h = harness(); await h.controller.load(); h.controller.reveal(); h.controller.clear();
   h.controller.play('front');

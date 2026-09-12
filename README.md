@@ -1,7 +1,12 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.12
+## What's new in 0.4.13
+
+- Formatting filters: Skip cloze questions silences manual and automatic playback while a cloze answer is hidden. Revealed answers remain playable.
+- The Settings command opens the active document/folder scope, with Global defaults still available.
+
+## Added in 0.4.12
 
 - Top refreshes from the live queue after card completion and reconciles missed card events without replaying unchanged cards.
 - Ignore stale widget card IDs during transitions; stop checking after queue exit.

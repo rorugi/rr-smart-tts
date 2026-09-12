@@ -1,7 +1,9 @@
 import type { PhysicalSide, SmartTTSConfig } from './config';
-import { cardShowsSemanticFrontFirst } from './card_text';
+import { cardShowsSemanticFrontFirst, isClozeCard } from './card_text';
 
 export type ReviewContext = { cardId: string; rem: any; cardType: any; config: SmartTTSConfig; revealed: boolean; scopeIds?: string[] };
+export const skipsClozeQuestion = (context: ReviewContext) =>
+  context.config.skipClozeQuestions && !context.revealed && isClozeCard(context.cardType);
 
 export function physicalSideForPhase(cardType: any, revealed: boolean): PhysicalSide {
   return cardShowsSemanticFrontFirst(cardType) !== revealed ? 'front' : 'back';
@@ -79,11 +81,11 @@ export class ReviewController {
     }
   }
   play(side: PhysicalSide) {
-    if (this.context?.config.enabled) this.io.speak(this.context, side);
+    if (this.context?.config.enabled && !skipsClozeQuestion(this.context)) this.io.speak(this.context, side);
   }
   private autoplay() {
     const context = this.context;
-    if (!context || this.stopped || this.played.has(String(context.revealed))) return;
+    if (!context || skipsClozeQuestion(context) || this.stopped || this.played.has(String(context.revealed))) return;
     const side = physicalSideForPhase(context.cardType, context.revealed);
     if (!shouldAutoplay(context.config, context.revealed, side)) return;
     this.played.add(String(context.revealed));
