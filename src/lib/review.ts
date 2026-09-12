@@ -12,7 +12,7 @@ export function shouldAutoplay(config: SmartTTSConfig, revealed: boolean, side: 
     (side === 'front' ? config.autoPlayPhysicalFront : config.autoPlayPhysicalBack));
 }
 
-/** Queue events, not a timer or a render effect, define review transitions. */
+/** Applies queue state supplied by card widgets, events, or Top reconciliation. */
 export class ReviewController {
   private version = 0;
   private configVersion = 0;
