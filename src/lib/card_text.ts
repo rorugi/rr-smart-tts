@@ -8,7 +8,7 @@ import type { SmartTTSConfig } from './config';
 import { richTextToSpeechText } from './filter';
 import { CLOZE_PAUSE } from './pause';
 
-const isClozeCard = (cardType?: CardTypeLike): cardType is { clozeId: string } =>
+export const isClozeCard = (cardType?: CardTypeLike): cardType is { clozeId: string } =>
   typeof cardType === 'object' && cardType !== null && 'clozeId' in cardType;
 
 function withClozeBlank(richText: RichTextInterface | undefined, clozeId?: string, pause = false): RichTextInterface {

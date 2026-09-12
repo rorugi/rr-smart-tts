@@ -10,6 +10,16 @@ let detachPosition: (() => void) | undefined;
 import { getConfigScopes, getEffectiveConfig, getScopeConfig, setScopeConfig } from '../lib/config';
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
+  if (!remId) {
+    // Capture the page before opening the popup, which can change focus.
+    try {
+      const pane = await plugin.window.getFocusedPaneId() || await plugin.window.getLastFocusedPane();
+      if (pane) remId = await plugin.window.getOpenPaneRemId(pane);
+    } catch { /* Fall back to the focused Rem below. */ }
+    if (!remId) {
+      try { remId = (await plugin.focus.getFocusedRem())?._id; } catch { /* No document is open. */ }
+    }
+  }
   await plugin.widget.openPopup('config_popup', { remId, cardId });
 }
 
@@ -61,10 +71,10 @@ async function onActivate(plugin: ReactRNPlugin) {
 
   await plugin.app.registerCommand({
     id: 'rr-smart-tts-global-settings',
-    name: 'RR Smart TTS: Global settings',
-    description: 'Open the global defaults for RR Smart TTS.',
+    name: 'RR Smart TTS: Settings',
+    description: 'Configure the current document or folder, or choose Global defaults.',
     action: async () => {
-      await plugin.widget.openPopup('config_popup', { globalOnly: true });
+      await openConfigForContext(plugin);
     },
   });
 

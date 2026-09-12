@@ -5,7 +5,7 @@ import { CONTROLS_POSITION_KEY, ControlsPosition, getControlsPosition } from '..
 import { configStorageKey, getEffectiveConfig } from '../lib/config';
 import { getSemanticBackText, getSemanticFrontText } from '../lib/card_text';
 import { speakPreparedText, stopSpeech } from '../lib/speech';
-import { ReviewContext, ReviewController } from '../lib/review';
+import { ReviewContext, ReviewController, skipsClozeQuestion } from '../lib/review';
 
 function SmartTTSWidget() {
   const plugin = usePlugin();
@@ -127,7 +127,7 @@ function SmartTTSWidget() {
   }, [plugin, controller, scopeKeys]);
 
   const visible = !(context && !context.config.enabled) && (!!context || position === 'top');
-  const ready = !!context;
+  const ready = !!context && !skipsClozeQuestion(context);
   return (
     // The native SDK observes mountDiv.firstChild once during activation.
     // Keep this element mounted even before asynchronous settings/card loads finish.

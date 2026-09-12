@@ -292,6 +292,8 @@ function ConfigPopup() {
 
       <div className="rr-tts-section">
         <h3>Formatting filters</h3>
+        <label className="rr-tts-check"><input type="checkbox" checked={config.skipClozeQuestions} onChange={(e) => update('skipClozeQuestions', e.target.checked)} /> Skip cloze questions</label>
+        <p className="rr-tts-scope-note">No speech while a cloze answer is hidden, including manual playback. Speech is available again after revealing the answer.</p>
         <div className="rr-tts-grid">
           <label className="rr-tts-check"><input type="checkbox" checked={config.skipItalic} onChange={(e) => update('skipItalic', e.target.checked)} /> Skip italic text</label>
           <label className="rr-tts-check"><input type="checkbox" checked={config.skipBold} onChange={(e) => update('skipBold', e.target.checked)} /> Skip bold text</label>
