@@ -315,6 +315,49 @@ test('Top stays visible and loads automatically when the queue becomes ready', a
   await act(async () => { t.mock.timers.tick(3000); await tick(); });
   assert.equal(h.spoken.length, 1);
 });
+test('Top recovers after completion without a load event and ignores the completed card', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  const h = setup(); h.values.set('rr-smart-tts:controls-position:v1', 'top');
+  h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalFront: true });
+  await mount(Toolbar);
+  assert.equal(h.spoken.length, 1);
+  await act(async () => { h.emit('complete'); await tick(); });
+  assert.equal(button('Front').props.disabled, true);
+  // RemNote still reports the completed card during its transition.
+  await act(async () => { t.mock.timers.tick(250); await tick(); });
+  assert.equal(h.spoken.length, 1);
+  h.rems.card.text = ['second'];
+  h.setCurrent({ _id: 'second', getRem: async () => h.rems.card, getType: async () => 'forward' });
+  await act(async () => { t.mock.timers.tick(300); await tick(); });
+  assert.equal(button('Front').props.disabled, false);
+  assert.equal(h.spoken.at(-1).text, 'second');
+  await act(async () => { t.mock.timers.tick(1000); await tick(); });
+  assert.equal(h.spoken.length, 2);
+  // Also recover when neither completion nor load is delivered.
+  h.rems.card.text = ['third'];
+  h.setCurrent({ _id: 'third', getRem: async () => h.rems.card, getType: async () => 'forward' });
+  await act(async () => { t.mock.timers.tick(300); await tick(); });
+  assert.equal(h.spoken.length, 3);
+  assert.equal(h.spoken.at(-1).text, 'third');
+  await act(async () => { h.emit('exit'); await tick(); });
+  h.setCurrent({ _id: 'after-exit', getRem: async () => h.rems.card, getType: async () => 'forward' });
+  await act(async () => { t.mock.timers.tick(4000); await tick(); });
+  assert.equal(h.spoken.length, 3);
+  assert.equal(button('Front').props.disabled, true);
+});
+
+test('Top does not fall back to stale widget card IDs while the queue is empty', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  const h = setup(); h.values.set('rr-smart-tts:controls-position:v1', 'top');
+  api.widget.getWidgetContext = async () => ({ cardId: 'stale', remId: 'card' });
+  h.setCurrent(undefined);
+  let staleReads = 0;
+  api.card.findOne = async () => { staleReads++; throw new Error('stale lookup'); };
+  await mount(Toolbar);
+  assert.equal(staleReads, 0);
+  assert.equal(button('Front').props.disabled, true);
+});
+
 test('leaving review cancels pending Top readiness retries', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const h = setup(); h.values.set('rr-smart-tts:controls-position:v1', 'top');
