@@ -1,4 +1,5 @@
 import type { RNPlugin } from '@remnote/plugin-sdk';
+import { detectVoicePlatform } from './platform';
 
 // The Rem object is provided by the SDK at runtime, but SDK 0.0.46 does not
 // export a public Rem type. Use a local compatibility alias for type checking.
@@ -32,7 +33,12 @@ export type SmartTTSConfig = {
   backPitch: number;
   volume: number;
   customRegex: string[];
+  platformVoices?: Record<string, VoiceSettings>;
 };
+export type VoiceSettings = Pick<SmartTTSConfig, 'frontVoice' | 'backVoice'>;
+const voiceSettings = (config: SmartTTSConfig): VoiceSettings => ({
+  frontVoice: config.frontVoice, backVoice: config.backVoice,
+});
 
 export type ScopeKind = 'global' | 'document' | 'folder';
 
@@ -109,22 +115,39 @@ export const clampConfig = (value?: Partial<SmartTTSConfig> | null): SmartTTSCon
 };
 
 export async function getGlobalConfig(plugin: RNPlugin): Promise<SmartTTSConfig> {
-  return clampConfig(await plugin.storage.getSynced<Partial<SmartTTSConfig>>(GLOBAL_KEY));
+  return resolvePlatformConfig(plugin, await plugin.storage.getSynced<Partial<SmartTTSConfig>>(GLOBAL_KEY));
 }
 
 export async function setGlobalConfig(plugin: RNPlugin, config: SmartTTSConfig) {
-  await plugin.storage.setSynced(GLOBAL_KEY, clampConfig(config));
+  await savePlatformConfig(plugin, GLOBAL_KEY, config);
+}
+
+async function resolvePlatformConfig(plugin: RNPlugin, raw?: Partial<SmartTTSConfig> | null): Promise<SmartTTSConfig> {
+  const base = clampConfig(raw);
+  const { key } = await detectVoicePlatform(plugin);
+  const profile = base.platformVoices?.[key];
+  return profile ? { ...base, ...voiceSettings(clampConfig({ ...base, ...profile })) } : base;
+}
+
+async function savePlatformConfig(plugin: RNPlugin, key: string, config: SmartTTSConfig) {
+  const existing = clampConfig(await plugin.storage.getSynced<Partial<SmartTTSConfig>>(key));
+  const platform = await detectVoicePlatform(plugin);
+  // Keep legacy voices as fallback for platforms that have not been configured.
+  // Read the stored map again so edits on this platform preserve other profiles.
+  const next = clampConfig(config);
+  await plugin.storage.setSynced(key, { ...next, ...voiceSettings(existing),
+    platformVoices: { ...existing.platformVoices, [platform.key]: voiceSettings(next) } });
 }
 
 export async function getScopeConfig(plugin: RNPlugin, scopeId: string): Promise<SmartTTSConfig | null> {
   if (!scopeId || scopeId === GLOBAL_SCOPE_ID) return getGlobalConfig(plugin);
   const raw = await plugin.storage.getSynced<Partial<SmartTTSConfig> | null>(`${SCOPE_PREFIX}${scopeId}`);
-  return raw ? clampConfig(raw) : null;
+  return raw ? resolvePlatformConfig(plugin, raw) : null;
 }
 
 export async function setScopeConfig(plugin: RNPlugin, scopeId: string, config: SmartTTSConfig) {
   if (scopeId === GLOBAL_SCOPE_ID) return setGlobalConfig(plugin, config);
-  await plugin.storage.setSynced(`${SCOPE_PREFIX}${scopeId}`, clampConfig(config));
+  await savePlatformConfig(plugin, `${SCOPE_PREFIX}${scopeId}`, config);
 }
 
 export async function clearScopeConfig(plugin: RNPlugin, scopeId: string) {

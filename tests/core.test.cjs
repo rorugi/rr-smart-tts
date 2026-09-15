@@ -1,6 +1,7 @@
 const { test, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { clampConfig, DEFAULT_CONFIG, getEffectiveConfig, getInheritedConfigForScope } = require('../src/lib/config');
+const { clampConfig, DEFAULT_CONFIG, getEffectiveConfig, getInheritedConfigForScope, getScopeConfig, setScopeConfig } = require('../src/lib/config');
+const { detectVoicePlatform } = require('../src/lib/platform');
 const { applyPlainTextFilters, richTextToSpeechText, validateRegexLines } = require('../src/lib/filter');
 const { getSemanticFrontText, getSemanticBackText } = require('../src/lib/card_text');
 const { resolveVoice } = require('../src/lib/voices');
@@ -14,6 +15,39 @@ const deferred = () => {
 };
 const flatten = (nodes) => nodes.map((n) => typeof n === 'string' ? n : n.text || '').join('');
 const plugin = { richText: { toString: async (nodes) => flatten(nodes) } };
+
+test('platform voices remain separate while filters stay shared and legacy values remain a fallback', async () => {
+  const values = new Map([['rr-smart-tts:scope:v1:doc', { voiceName: 'Legacy', rate: 1.2 }]]);
+  const client = os => ({ app: { getPlatform: async () => 'app', getOperatingSystem: async () => os },
+    storage: { getSynced: async key => values.get(key), setSynced: async (key, value) => values.set(key, value) } });
+  const desktop = client('windows'), android = client('android'), ios = client('ios');
+  const original = await getScopeConfig(desktop, 'doc');
+  assert.equal(original.frontVoice.name, 'Legacy');
+  await setScopeConfig(desktop, 'doc', { ...original, frontVoice: { name: 'Windows voice', uri: 'win', language: 'de-DE' }, frontRate: 0.8 });
+  assert.equal((await getScopeConfig(android, 'doc')).frontVoice.name, 'Legacy');
+  const mobile = await getScopeConfig(android, 'doc');
+  await setScopeConfig(android, 'doc', { ...mobile, frontVoice: { name: 'Android voice', uri: 'and', language: 'es-ES' }, frontRate: 1.4, skipBold: true });
+  const win = await getScopeConfig(desktop, 'doc');
+  assert.equal(win.frontVoice.name, 'Windows voice'); assert.equal(win.frontRate, 1.4); assert.equal(win.skipBold, true);
+  assert.equal((await getScopeConfig(android, 'doc')).frontVoice.name, 'Android voice');
+  assert.equal((await getScopeConfig(ios, 'doc')).frontVoice.name, 'Legacy');
+  // Saving a previously loaded form must not drop another platform's later profile.
+  await setScopeConfig(desktop, 'doc', { ...original, frontPitch: 0.7 });
+  assert.equal((await getScopeConfig(android, 'doc')).frontVoice.name, 'Android voice');
+  assert.equal((await getScopeConfig(android, 'doc')).frontPitch, 0.7);
+});
+
+test('browser profiles distinguish Chrome from Firefox and app mode from browser mode', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  try {
+    const client = mode => ({ app: { getPlatform: async () => mode, getOperatingSystem: async () => 'android' } });
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { userAgent: 'Android Chrome/140' } });
+    assert.equal((await detectVoicePlatform(client('web'))).key, 'web:android:chrome');
+    assert.equal((await detectVoicePlatform(client('app'))).key, 'app:android');
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { userAgent: 'Android Firefox/140' } });
+    assert.equal((await detectVoicePlatform(client('web'))).key, 'web:android:firefox');
+  } finally { if (original) Object.defineProperty(globalThis, 'navigator', original); else delete globalThis.navigator; }
+});
 
 test('migrates the shared voice to both physical sides without changing legacy autoplay', () => {
   const config = clampConfig({ voiceName: 'Legacy', autoPlayFront: true });

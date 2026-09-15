@@ -64,7 +64,7 @@ function setup() {
     rem: { findOne: async (id) => rems[id] },
     richText: { toString: async (nodes) => nodes.map((n) => typeof n === 'string' ? n : n.text || '').join('') },
     queue: { getCurrentCard: async () => current, hasRevealedAnswer: async () => false },
-    app: { toast: async () => {} },
+    app: { toast: async () => {}, getPlatform: async () => 'app', getOperatingSystem: async () => 'windows' },
     event: {
       addListener: (event, key, callback) => {
         const id = JSON.stringify([event, key]);
@@ -185,8 +185,9 @@ test('front/back voice selections are independent and persist with their languag
     root.root.findByProps({ id: 'back-voice' }).props.onChange({ target: { value: JSON.stringify(['en', 'English', 'en-US']) } });
   });
   await act(async () => { button('Save').props.onClick(); await tick(); });
-  assert.deepEqual(h.writes[0][1].frontVoice, { name: 'Hindi', uri: 'hi', language: 'hi-IN' });
-  assert.deepEqual(h.writes[0][1].backVoice, { name: 'English', uri: 'en', language: 'en-US' });
+  assert.deepEqual(h.writes[0][1].platformVoices['app:windows'].frontVoice, { name: 'Hindi', uri: 'hi', language: 'hi-IN' });
+  assert.deepEqual(h.writes[0][1].platformVoices['app:windows'].backVoice, { name: 'English', uri: 'en', language: 'en-US' });
+  assert.ok(root.root.findAllByType('strong').some(node => node.children.includes('Windows app')));
 });
 
 test('current-card preview uses formatting filters and updates when they change', async () => {

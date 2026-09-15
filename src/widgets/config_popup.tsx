@@ -21,6 +21,7 @@ import { speakText, stopSpeech } from '../lib/speech';
 import { getLocalVoiceInfo, resolveVoice } from '../lib/voices';
 import { getSemanticFrontText, getSemanticBackText } from '../lib/card_text';
 import type { VoiceInfo } from '../lib/voices';
+import { detectVoicePlatform } from '../lib/platform';
 
 const SAMPLE_TEXT = 'घर [ghar] (masculine) means house. {grammar note} This italic/transliteration example can also be filtered before speech.';
 
@@ -58,7 +59,8 @@ function ConfigPopup() {
       : await getConfigScopes(plugin, remId);
     const preferred = scopes.find((s) => s.kind === 'document') || scopes.find((s) => s.kind === 'folder') || scopes[0];
     const position = await getControlsPosition(plugin);
-    return { ctx, scopes, preferred, position };
+    const platform = await detectVoicePlatform(plugin);
+    return { ctx, scopes, preferred, position, platform };
   }, []);
 
   useEffect(() => {
@@ -258,6 +260,7 @@ function ConfigPopup() {
       <fieldset className="rr-tts-settings" disabled={!ready}>
       <div className="rr-tts-section">
         <h3>Playback</h3>
+        <p className="rr-tts-scope-note">Detected platform: <strong>{data.platform.label}</strong>. Voice and language are saved separately for this platform in the selected scope. Front/Back rate and pitch, filters and autoplay are shared across platforms.</p>
         <div className="rr-tts-field">
           <label htmlFor="controls-position">Controls position</label>
           <select id="controls-position" className="rr-tts-select" value={controlsPosition} onChange={(e) => setControlsPosition(e.target.value as ControlsPosition)}>

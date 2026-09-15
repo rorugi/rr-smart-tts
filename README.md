@@ -1,7 +1,12 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.14
+## What's new in 0.4.15
+
+- Voice and language are saved per platform within each scope. Settings show the detected OS and app/browser. Browser families are separated where detectable; Chrome stable and Canary may share a profile.
+- Existing voices remain the fallback until a platform is configured. Front/Back rate and pitch, filters and autoplay remain shared across platforms.
+
+## Added in 0.4.14
 
 - Include the repository logos in the installation ZIP and fail package checks if either logo is missing or differs from its source.
 - Front and Back each have independent rate and pitch sliders; older shared values migrate to both sides.
