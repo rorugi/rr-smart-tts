@@ -10,6 +10,11 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const manifest = JSON.parse(fs.readFileSync(path.join(dist, 'manifest.json'), 'utf8'));
 assert.equal([manifest.version.major, manifest.version.minor, manifest.version.patch].join('.'), pkg.version);
 assert.ok(fs.existsSync(path.join(dist, 'docs', 'SMOKE_TEST.md')));
+for (const name of ['logo.png', 'logo_large.png']) {
+  const source = fs.readFileSync(path.join(root, 'public', name));
+  assert.equal(source.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', name + ' must be a PNG');
+  assert.deepEqual(fs.readFileSync(path.join(dist, name)), source, name + ' must be copied into the release');
+}
 for (const widget of ['index', 'smart_tts', 'config_popup', 'unknown', 'https://example.invalid/script', '']) {
   const assets = [];
   const document = {

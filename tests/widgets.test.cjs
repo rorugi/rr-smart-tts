@@ -4,12 +4,12 @@ const React = require('react');
 const Renderer = require('react-test-renderer');
 const Module = require('node:module');
 const { act } = Renderer;
-let api, Popup, Toolbar, activate, root;
+let api, Popup, Toolbar, activate, deactivate, root;
 const events = { QueueLoadCard: 'load', QueueCompleteCard: 'complete', QueueEnter: 'enter', QueueExit: 'exit', RevealAnswer: 'reveal' };
 const originalLoad = Module._load;
 Module._load = function (name, ...args) {
   if (name === '@remnote/plugin-sdk') return {
-    declareIndexPlugin: (onActivate) => { activate = onActivate; },
+    declareIndexPlugin: (onActivate, onDeactivate) => { activate = onActivate; deactivate = onDeactivate; },
     WidgetLocation: { QueueBelowTopBar: 'QueueBelowTopBar', FloatingWidget: 'FloatingWidget', Popup: 'Popup', QueueToolbar: 'QueueToolbar', FlashcardUnder: 'FlashcardUnder' },
     PluginCommandMenuLocation: { QueueMenu: 'QueueMenu' },
     usePlugin: () => api,
@@ -84,8 +84,32 @@ const button = (text) => root.root.findAllByType('button').find((b) => (b.props[
 const scopeSelect = () => root.root.findAllByType('select')[0];
 const rate = () => root.root.findAllByType('input').find((i) => i.props.type === 'range' && i.props.min === '0.5').props.value;
 afterEach(async () => {
+  await deactivate(api);
   if (root) { await act(async () => root.unmount()); root = undefined; }
   delete global.speechSynthesis; delete global.SpeechSynthesisUtterance;
+});
+
+test('queue menu names describe the next autoplay action and track scope changes', async t => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  const h = setup(); const menu = new Map();
+  api.app.registerWidget = api.app.unregisterWidget = api.app.registerCSS = api.app.registerCommand = async () => {};
+  api.app.registerMenuItem = async item => menu.set(item.id, item);
+  await activate(api);
+  const item = () => menu.get('rr-smart-tts-toggle-autoplay');
+  assert.equal(menu.get('rr-smart-tts-configure').name, 'RR Smart TTS: Settings');
+  assert.equal(item().name, 'RR Smart TTS: Auto-Play On');
+  await item().action({ remId: 'card' });
+  assert.equal(item().name, 'RR Smart TTS: Auto-Play Off');
+  await item().action({ remId: 'card' });
+  assert.equal(item().name, 'RR Smart TTS: Auto-Play On');
+  h.values.set('rr-smart-tts:scope:v1:doc', { autoPlayPhysicalBack: true });
+  await act(async () => { t.mock.timers.tick(750); await tick(); });
+  assert.equal(item().name, 'RR Smart TTS: Auto-Play Off');
+  await item().action({ remId: 'card' });
+  assert.equal(h.values.get('rr-smart-tts:scope:v1:doc').autoPlayPhysicalBack, false);
+  h.setCurrent(undefined);
+  await act(async () => { t.mock.timers.tick(750); await tick(); });
+  assert.equal(item().name, 'RR Smart TTS: Toggle Auto-Play');
 });
 
 test('settings command passes active page and popup includes document, folder and global scopes', async () => {
@@ -136,6 +160,22 @@ test('switching scopes ignores stale loads and blocks Save until selected scope 
   await act(async () => { button('Save').props.onClick(); await tick(); });
   assert.equal(h.writes[0][0], 'rr-smart-tts:global:v1');
   assert.equal(h.writes[0][1].rate, 1);
+});
+
+test('front/back rate and pitch save independently and apply to previews', async () => {
+  const h = setup(); await mount(Popup);
+  assert.equal(root.root.findByProps({ id: 'front-rate' }).props.value, 1.5);
+  assert.equal(root.root.findByProps({ id: 'back-rate' }).props.value, 1.5);
+  await act(async () => {
+    for (const [id, value] of [['front-rate', 0.8], ['back-rate', 1.4], ['front-pitch', 0.7], ['back-pitch', 1.3]]) {
+      root.root.findByProps({ id }).props.onChange({ target: { value: String(value) } });
+    }
+  });
+  await act(async () => { button('Save').props.onClick(); await tick(); });
+  const saved = h.values.get('rr-smart-tts:scope:v1:doc');
+  assert.deepEqual([saved.frontRate, saved.backRate, saved.frontPitch, saved.backPitch], [0.8, 1.4, 0.7, 1.3]);
+  await act(async () => { button('▶ Test front').props.onClick(); await tick(); });
+  assert.deepEqual([h.spoken.at(-1).rate, h.spoken.at(-1).pitch], [0.8, 0.7]);
 });
 
 test('front/back voice selections are independent and persist with their languages', async () => {

@@ -7,7 +7,8 @@ import {
 import '../style.css';
 import { registerControlsPosition } from '../lib/controls_position';
 let detachPosition: (() => void) | undefined;
-import { getConfigScopes, getEffectiveConfig, getScopeConfig, setScopeConfig } from '../lib/config';
+import { registerAutoplayMenu } from '../lib/autoplay_menu';
+let detachAutoplayMenu: (() => void) | undefined;
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
   if (!remId) {
@@ -25,6 +26,7 @@ async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardI
 
 async function onActivate(plugin: ReactRNPlugin) {
   detachPosition?.();
+  detachAutoplayMenu?.();
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueToolbar);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FlashcardUnder);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueBelowTopBar);
@@ -40,34 +42,14 @@ async function onActivate(plugin: ReactRNPlugin) {
 
   await plugin.app.registerMenuItem({
     id: 'rr-smart-tts-configure',
-    name: 'RR Smart TTS: Configure current document / folder',
+    name: 'RR Smart TTS: Settings',
     location: PluginCommandMenuLocation.QueueMenu,
     action: async ({ remId, cardId }: { remId?: string; cardId?: string }) => {
       await openConfigForContext(plugin, remId, cardId);
     },
   });
 
-  await plugin.app.registerMenuItem({
-    id: 'rr-smart-tts-toggle-autoplay',
-    name: 'RR Smart TTS: Toggle question/answer auto-play for current scope',
-    location: PluginCommandMenuLocation.QueueMenu,
-    action: async ({ remId }: { remId?: string }) => {
-      const scopes = await getConfigScopes(plugin, remId);
-      const target = scopes.find((scope) => scope.kind !== 'global');
-      if (!target) {
-        await plugin.app.toast('RR Smart TTS: No document or folder scope found.');
-        return;
-      }
-      const existing = await getScopeConfig(plugin, target.id);
-      const effective = existing || (await getEffectiveConfig(plugin, remId)).config;
-      const nextEnabled = !(effective.autoPlayQuestion && effective.autoPlayAnswer);
-      const next = { ...effective, autoPlayQuestion: nextEnabled, autoPlayAnswer: nextEnabled };
-      await setScopeConfig(plugin, target.id, next);
-      await plugin.app.toast(
-        `RR Smart TTS question/answer auto-play ${nextEnabled ? 'enabled' : 'disabled'} for ${target.name}.`
-      );
-    },
-  });
+  detachAutoplayMenu = await registerAutoplayMenu(plugin);
 
   await plugin.app.registerCommand({
     id: 'rr-smart-tts-global-settings',
@@ -80,6 +62,6 @@ async function onActivate(plugin: ReactRNPlugin) {
 
 }
 
-async function onDeactivate(_: ReactRNPlugin) { detachPosition?.(); detachPosition = undefined; }
+async function onDeactivate(_: ReactRNPlugin) { detachPosition?.(); detachPosition = undefined; detachAutoplayMenu?.(); detachAutoplayMenu = undefined; }
 
 declareIndexPlugin(onActivate, onDeactivate);
