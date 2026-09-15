@@ -26,8 +26,8 @@ function play(text: string, config: SmartTTSConfig, side: PhysicalSide, report: 
   const resolved = resolveVoice(speechSynthesis.getVoices(), preference);
   utterance.voice = resolved.voice || null;
   if (preference.language || resolved.voice?.lang) utterance.lang = preference.language || resolved.voice!.lang;
-  utterance.rate = config.rate;
-  utterance.pitch = config.pitch;
+  utterance.rate = side === 'front' ? config.frontRate : config.backRate;
+  utterance.pitch = side === 'front' ? config.frontPitch : config.backPitch;
   utterance.volume = config.volume;
   current = utterance;
   const finish = () => {

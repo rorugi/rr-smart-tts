@@ -26,6 +26,10 @@ export type SmartTTSConfig = {
   backVoice: VoicePreference;
   rate: number;
   pitch: number;
+  frontRate: number;
+  backRate: number;
+  frontPitch: number;
+  backPitch: number;
   volume: number;
   customRegex: string[];
 };
@@ -62,6 +66,10 @@ export const DEFAULT_CONFIG: SmartTTSConfig = {
   backVoice: { name: '', uri: '', language: '' },
   rate: 1,
   pitch: 1,
+  frontRate: 1,
+  backRate: 1,
+  frontPitch: 1,
+  backPitch: 1,
   volume: 1,
   customRegex: [],
 };
@@ -91,6 +99,10 @@ export const clampConfig = (value?: Partial<SmartTTSConfig> | null): SmartTTSCon
     backVoice: voice(raw.backVoice),
     rate: number(raw.rate, DEFAULT_CONFIG.rate, 0.5, 2),
     pitch: number(raw.pitch, DEFAULT_CONFIG.pitch, 0, 2),
+    frontRate: number(raw.frontRate, number(raw.rate, 1, 0.5, 2), 0.5, 2),
+    backRate: number(raw.backRate, number(raw.rate, 1, 0.5, 2), 0.5, 2),
+    frontPitch: number(raw.frontPitch, number(raw.pitch, 1, 0, 2), 0, 2),
+    backPitch: number(raw.backPitch, number(raw.pitch, 1, 0, 2), 0, 2),
     volume: number(raw.volume, DEFAULT_CONFIG.volume, 0, 1),
     customRegex: Array.isArray(raw.customRegex) ? raw.customRegex.filter((x) => typeof x === 'string') : [],
   };

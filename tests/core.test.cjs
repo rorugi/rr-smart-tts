@@ -124,6 +124,16 @@ beforeEach(() => {
   global.speechSynthesis = { cancel: () => cancels++, getVoices: () => voices, speak: (u) => spoken.push(u) };
 });
 afterEach(() => { stopSpeech(); delete global.speechSynthesis; delete global.SpeechSynthesisUtterance; });
+test('legacy rate and pitch migrate to both sides, with independent overrides and bounds', () => {
+  const old = clampConfig({ rate: 1.4, pitch: 0.8 });
+  assert.deepEqual([old.frontRate, old.backRate, old.frontPitch, old.backPitch], [1.4, 1.4, 0.8, 0.8]);
+  const config = clampConfig({ rate: 1.4, pitch: 0.8, frontRate: 0.7, backPitch: 1.3 });
+  speakText('front', config, 'front'); speakText('back', config, 'back');
+  assert.deepEqual(spoken.map(u => [u.rate, u.pitch]), [[0.7, 0.8], [1.4, 1.3]]);
+  const bounds = clampConfig({ frontRate: -5, backRate: 8, frontPitch: NaN, backPitch: -1 });
+  assert.deepEqual([bounds.frontRate, bounds.backRate, bounds.frontPitch, bounds.backPitch], [0.5, 2, 1, 0]);
+});
+
 test('each physical side uses its own voice and language', () => {
   const config = clampConfig({
     frontVoice: { name: 'Hindi', uri: 'hi', language: 'hi-IN' },

@@ -213,6 +213,14 @@ function ConfigPopup() {
           placeholder="System default, or e.g. hi-IN / en-US" value={preference.language}
           onChange={(e) => change({ ...preference, language: e.target.value.trim() })} />
         <div className="rr-tts-scope-note">{resolveVoice(voices, preference).status}</div>
+        <label htmlFor={side + '-rate'}>{side === 'front' ? 'Front' : 'Back'} rate: {config[side === 'front' ? 'frontRate' : 'backRate'].toFixed(2)}×</label>
+        <input id={side + '-rate'} type="range" min="0.5" max="2" step="0.05"
+          value={config[side === 'front' ? 'frontRate' : 'backRate']}
+          onChange={(e) => update(side === 'front' ? 'frontRate' : 'backRate', Number(e.target.value))} />
+        <label htmlFor={side + '-pitch'}>{side === 'front' ? 'Front' : 'Back'} pitch: {config[side === 'front' ? 'frontPitch' : 'backPitch'].toFixed(2)}</label>
+        <input id={side + '-pitch'} type="range" min="0" max="2" step="0.05"
+          value={config[side === 'front' ? 'frontPitch' : 'backPitch']}
+          onChange={(e) => update(side === 'front' ? 'frontPitch' : 'backPitch', Number(e.target.value))} />
       </div>
     );
   };
@@ -278,16 +286,6 @@ function ConfigPopup() {
           <span className="rr-tts-scope-note" role="status">{voiceStatus || voices.length + ' local voices discovered.'}</span>
         </div>
         <p className="rr-tts-scope-note">These settings follow the physical sides, including backward cards. The chosen language is kept when a voice is unavailable on another device.</p>
-        <div className="rr-tts-grid">
-          <div className="rr-tts-field">
-            <label>Rate: {config.rate.toFixed(2)}×</label>
-            <input type="range" min="0.5" max="2" step="0.05" value={config.rate} onChange={(e) => update('rate', Number(e.target.value))} />
-          </div>
-          <div className="rr-tts-field">
-            <label>Pitch: {config.pitch.toFixed(2)}</label>
-            <input type="range" min="0" max="2" step="0.05" value={config.pitch} onChange={(e) => update('pitch', Number(e.target.value))} />
-          </div>
-        </div>
       </div>
 
       <div className="rr-tts-section">

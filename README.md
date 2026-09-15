@@ -1,7 +1,13 @@
 # RR Smart TTS
 
 
-## What's new in 0.4.13
+## What's new in 0.4.14
+
+- Include the repository logos in the installation ZIP and fail package checks if either logo is missing or differs from its source.
+- Front and Back each have independent rate and pitch sliders; older shared values migrate to both sides.
+- The queue menu uses Settings and Auto-Play On/Off. On/Off describes the action, and Off disables every autoplay rule. Without a current card the label is Toggle Auto-Play.
+
+## Added in 0.4.13
 
 - Formatting filters: Skip cloze questions silences manual and automatic playback while a cloze answer is hidden. Revealed answers remain playable.
 - The Settings command opens the active document/folder scope, with Global defaults still available.
