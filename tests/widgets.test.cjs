@@ -20,7 +20,7 @@ Module._load = function (name, ...args) {
       return value;
     },
     QueueEvent: events,
-    StorageEvents: { StorageSyncedChange: 'storage' },
+    StorageEvents: { StorageSyncedChange: 'storage', StorageSessionChange: 'session' },
     useAPIEventListener: (event, key, callback) => {
       React.useEffect(() => {
         api.event.addListener(event, key, callback);
@@ -45,7 +45,7 @@ function setup() {
     ['rr-smart-tts:scope:v1:doc', { rate: 1.5 }],
     ['rr-smart-tts:scope:v1:folder', { rate: 1.75 }],
   ]);
-  const writes = [], spoken = [];
+  const writes = [], spoken = [], session = new Map();
   const rems = {};
   for (const [id, parent, doc, folder] of [['card', 'doc', false, false], ['doc', 'folder', true, false], ['folder', null, true, true]]) {
     rems[id] = {
@@ -57,7 +57,10 @@ function setup() {
   let current = { _id: 'a', getRem: async () => rems.card, getType: async () => 'forward' };
   api = {
     widget: { getWidgetContext: async () => ({ remId: 'card', cardId: current?._id, revealed: false }), closePopup: async () => {} },
-    storage: { getSynced: async (key) => values.get(key), setSynced: async (key, value) => {
+    storage: {
+      getSession: async key => session.get(key),
+      setSession: async (key, value) => { session.set(key, value); emit('session', key); },
+      getSynced: async (key) => values.get(key), setSynced: async (key, value) => {
       values.set(key, value); writes.push([key, value]); emit('storage', key);
     } },
     card: { findOne: async () => current },
@@ -83,6 +86,63 @@ const mount = async (Component) => act(async () => { root = Renderer.create(Reac
 const button = (text) => root.root.findAllByType('button').find((b) => (b.props['aria-label'] || b.children.join('')) === text);
 const scopeSelect = () => root.root.findAllByType('select')[0];
 const rate = () => root.root.findAllByType('input').find((i) => i.props.type === 'range' && i.props.min === '0.5').props.value;
+
+test('replay shortcuts use the current card and stop working on queue exit', async () => {
+  const h = setup(), commands = new Map();
+  const { registerReplayShortcuts } = require('../src/lib/shortcuts');
+  api.app.registerCommand = async command => commands.set(command.keyboardShortcut, command);
+  await registerReplayShortcuts(api);
+  assert.deepEqual([...commands.keys()], ['6', '7']);
+  await mount(Toolbar);
+  for (const [key, text] of [['6', 'card'], ['7', 'back'], ['6', 'card']]) {
+    await act(async () => { await commands.get(key).action(); await tick(); });
+    assert.equal(h.spoken.at(-1).text, text);
+  }
+  assert.equal(h.spoken.length, 3);
+  await act(async () => {
+    h.emit(events.QueueCompleteCard);
+    h.setCurrent({ _id: 'b', getRem: async () => h.rems.card, getType: async () => 'forward' });
+    root.unmount();
+  });
+  h.rems.card.text = ['next card'];
+  await mount(Toolbar);
+  assert.equal(h.spoken.length, 3, 'remount must not replay a stored shortcut');
+  await act(async () => { await commands.get('6').action(); await tick(); });
+  assert.equal(h.spoken.at(-1).text, 'next card');
+  await act(async () => { h.emit(events.QueueExit); await commands.get('7').action(); await tick(); });
+  assert.equal(h.spoken.length, 4, 'exited widget must not play even if queue state lags');
+  h.setCurrent(undefined);
+  await commands.get('6').action();
+  assert.equal(h.spoken.length, 4);
+});
+
+test('replay shortcuts respect disabled TTS, cloze filtering, and stale card requests', async () => {
+  const h = setup(), commands = new Map();
+  const { registerReplayShortcuts, REPLAY_REQUEST_KEY } = require('../src/lib/shortcuts');
+  api.app.registerCommand = async command => commands.set(command.keyboardShortcut, command);
+  await registerReplayShortcuts(api);
+  h.values.set('rr-smart-tts:scope:v1:doc', { enabled: false });
+  await mount(Toolbar);
+  await act(async () => { await commands.get('6').action(); await tick(); });
+  assert.equal(h.spoken.length, 0);
+  await act(async () => root.unmount());
+  h.values.set('rr-smart-tts:scope:v1:doc', { skipClozeQuestions: true });
+  h.setCurrent({ _id: 'cloze', getRem: async () => h.rems.card, getType: async () => ({ clozeId: 'c1' }) });
+  await mount(Toolbar);
+  await act(async () => {
+    await commands.get('6').action(); await tick();
+    await commands.get('7').action(); await tick();
+  });
+  assert.equal(h.spoken.length, 0);
+  await act(async () => { h.emit(events.RevealAnswer); await tick(); });
+  await act(async () => { await commands.get('7').action(); await tick(); });
+  assert.equal(h.spoken.length, 1);
+  await act(async () => {
+    await api.storage.setSession(REPLAY_REQUEST_KEY, { id: 'stale', cardId: 'old-card', side: 'front' });
+    await tick();
+  });
+  assert.equal(h.spoken.length, 1);
+});
 afterEach(async () => {
   await deactivate(api);
   if (root) { await act(async () => root.unmount()); root = undefined; }

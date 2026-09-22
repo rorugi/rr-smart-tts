@@ -8,6 +8,7 @@ import '../style.css';
 import { registerControlsPosition } from '../lib/controls_position';
 let detachPosition: (() => void) | undefined;
 import { registerAutoplayMenu } from '../lib/autoplay_menu';
+import { registerReplayShortcuts } from '../lib/shortcuts';
 let detachAutoplayMenu: (() => void) | undefined;
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
@@ -50,6 +51,7 @@ async function onActivate(plugin: ReactRNPlugin) {
   });
 
   detachAutoplayMenu = await registerAutoplayMenu(plugin);
+  await registerReplayShortcuts(plugin);
 
   await plugin.app.registerCommand({
     id: 'rr-smart-tts-global-settings',
