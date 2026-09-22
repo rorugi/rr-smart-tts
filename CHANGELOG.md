@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.16
+
+- Added default review shortcuts: 6 replays Front and 7 replays Back.
+- Route replay commands to the active card's speech controls, preserving voice preferences and cloze filtering.
+
 ## 0.4.1
 
 - Moved Front / Back / Stop into FlashcardUnder, the same below-card slot as RemNote's standard TTS controls.

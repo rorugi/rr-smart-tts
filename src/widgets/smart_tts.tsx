@@ -6,6 +6,7 @@ import { configStorageKey, getEffectiveConfig } from '../lib/config';
 import { getSemanticBackText, getSemanticFrontText } from '../lib/card_text';
 import { speakPreparedText, stopSpeech } from '../lib/speech';
 import { ReviewContext, ReviewController, skipsClozeQuestion } from '../lib/review';
+import { REPLAY_REQUEST_KEY, ReplayRequest } from '../lib/shortcuts';
 
 function SmartTTSWidget() {
   const plugin = usePlugin();
@@ -54,6 +55,30 @@ function SmartTTSWidget() {
     stop: stopSpeech,
     error: reportError,
   }), [plugin]);
+
+  useEffect(() => {
+    let disposed = false;
+    let lastRequest: string | undefined;
+    const replay = async () => {
+      const current = contextRef.current;
+      if (!current || queueExited.current) return;
+      const request = await plugin.storage.getSession<ReplayRequest>(REPLAY_REQUEST_KEY);
+      if (!request || request.id === lastRequest) return;
+      lastRequest = request.id;
+      const active = await plugin.queue.getCurrentCard();
+      if (disposed || queueExited.current || contextRef.current !== current ||
+          request.cardId !== current.cardId || active?._id !== current.cardId ||
+          (request.side !== 'front' && request.side !== 'back')) return;
+      controller.play(request.side);
+    };
+    const listener = () => { void replay().catch(() => { /* Ignore a card that is leaving the queue. */ }); };
+    plugin.event.addListener(StorageEvents.StorageSessionChange, REPLAY_REQUEST_KEY, listener);
+    // Only new commands play; never replay a saved request when a widget mounts.
+    return () => {
+      disposed = true;
+      plugin.event.removeListener(StorageEvents.StorageSessionChange, REPLAY_REQUEST_KEY, listener);
+    };
+  }, [plugin, controller]);
 
   const cancelLoading = () => {
     loadGeneration.current += 1;

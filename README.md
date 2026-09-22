@@ -2,11 +2,9 @@
 
 RR Smart TTS reads your RemNote flashcards aloud with separate front and back voices, flexible autoplay, and filters that keep speech focused on what you want to learn.
 
-## What's new in 0.4.15
+## What's new in 0.4.16
 
-- Save different voices and languages for each platform.
-- See the detected platform in settings.
-- Keep your front and back rate and pitch settings across platforms.
+- Press **6** to replay the front and **7** to replay the back during flashcard review.
 
 ## Getting started
 
@@ -16,6 +14,15 @@ RR Smart TTS reads your RemNote flashcards aloud with separate front and back vo
 4. Choose your formatting filters and autoplay preferences, then save.
 
 During review, use **Front** or **Back** to read that side of the card, and **Stop** to stop playback.
+
+## Keyboard shortcuts
+
+| Default key | Action during review |
+| --- | --- |
+| **6** | Replay the physical front of the current card. |
+| **7** | Replay the physical back of the current card. |
+
+These shortcuts use the same voices and filters as the buttons, including **Skip cloze questions**. They do nothing when there is no active flashcard.
 
 ## Voices and playback
 
