@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.18
+
+- Disable native access in the manifest for marketplace review.
+- Reject release packages that request native access.
+- Document the required sandbox client checks for autoplay, voice selection, and review controls.
+
+## 0.4.17
+
+- Show the default replay shortcut when hovering over Front or Back.
+- Remove the repeated plugin name from the replay shortcut commands.
+
 ## 0.4.16
 
 - Added default review shortcuts: 6 replays Front and 7 replays Back.

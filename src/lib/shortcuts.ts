@@ -3,15 +3,16 @@ import type { PhysicalSide } from './config';
 
 export const REPLAY_REQUEST_KEY = 'rr-smart-tts:replay-request:v1';
 export type ReplayRequest = { id: string; cardId: string; side: PhysicalSide };
+export const REPLAY_SHORTCUTS = { front: '6', back: '7' } as const;
 
 export async function registerReplayShortcuts(plugin: ReactRNPlugin) {
   let sequence = 0;
-  for (const [side, key] of [['front', '6'], ['back', '7']] as const) {
+  for (const side of ['front', 'back'] as const) {
     await plugin.app.registerCommand({
       id: 'rr-smart-tts-replay-' + side,
-      name: 'RR Smart TTS: Replay ' + (side === 'front' ? 'Front' : 'Back'),
+      name: 'Replay ' + (side === 'front' ? 'Front' : 'Back'),
       description: 'Replay the physical ' + side + ' of the current flashcard.',
-      keyboardShortcut: key,
+      keyboardShortcut: REPLAY_SHORTCUTS[side],
       action: async () => {
         const card = await plugin.queue.getCurrentCard();
         if (!card) return;
