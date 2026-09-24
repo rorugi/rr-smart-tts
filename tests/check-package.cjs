@@ -8,6 +8,9 @@ const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 const script = html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const manifest = JSON.parse(fs.readFileSync(path.join(dist, 'manifest.json'), 'utf8'));
+const sourceManifest = JSON.parse(fs.readFileSync(path.join(root, 'public', 'manifest.json'), 'utf8'));
+assert.equal(sourceManifest.requestNative, false, 'Source must not request native access');
+assert.equal(manifest.requestNative, false, 'Marketplace package must not request native access');
 assert.equal([manifest.version.major, manifest.version.minor, manifest.version.patch].join('.'), pkg.version);
 assert.ok(fs.existsSync(path.join(dist, 'docs', 'SMOKE_TEST.md')));
 for (const name of ['logo.png', 'logo_large.png']) {
@@ -31,6 +34,6 @@ for (const widget of ['index', 'smart_tts', 'config_popup', 'unknown', 'https://
     assert.match(document.body.textContent, /Unknown or missing/);
   }
 }
-console.log('Package checks passed: version, documentation, and sandbox JavaScript/styles.');
+console.log('Package checks passed: native access disabled, version, documentation, and sandbox JavaScript/styles.');
 
 assert.equal(fs.readFileSync(path.join(dist, 'App.css'), 'utf8'), fs.readFileSync(path.join(root, 'src/style.css'), 'utf8'), 'SDK shared stylesheet must contain current plugin styles');

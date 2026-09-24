@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.18
+
+- Disable native access in the manifest for marketplace review.
+- Reject release packages that request native access.
+- Document the required sandbox client checks for autoplay, voice selection, and review controls.
+
 ## 0.4.17
 
 - Show the default replay shortcut when hovering over Front or Back.
