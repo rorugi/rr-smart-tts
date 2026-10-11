@@ -2,11 +2,9 @@
 
 RR Smart TTS reads your RemNote flashcards aloud with separate front and back voices, flexible autoplay, and filters that keep speech focused on what you want to learn.
 
-## What's new in 0.4.18
+## What's new in 0.4.19
 
-- Hover over Front or Back to see its default keyboard shortcut.
-- Show the plugin name only once in the replay shortcut settings.
-- Removed the native-access permission request.
+- Limit replay shortcuts to flashcard review so 6 and 7 remain available for text entry.
 
 ## Getting started
 
@@ -24,7 +22,7 @@ During review, use **Front** or **Back** to read that side of the card, and **St
 | **6** | Replay the physical front of the current card. |
 | **7** | Replay the physical back of the current card. |
 
-These shortcuts use the same voices and filters as the buttons, including **Skip cloze questions**. They do nothing when there is no active flashcard.
+These shortcuts use the same voices and filters as the buttons, including **Skip cloze questions**. Their bindings are removed outside flashcard review and suspended while a Rem editor is focused or typed-answer mode is enabled. Use the replay buttons when typing an answer.
 
 Hover over a replay button to see its default shortcut. RemNote does not expose remapped shortcuts to this plugin, so the tooltips cannot reflect changes made in RemNote's shortcut settings.
 

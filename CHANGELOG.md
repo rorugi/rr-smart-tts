@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.19
+
+- Remove replay key bindings outside review and while editing a Rem or using typed-answer mode.
+- Clear old global bindings on activation and release bindings/listeners on deactivation.
+- Guard against stale context reads restoring shortcuts after queue exit.
+
 ## 0.4.18
 
 - Disable native access in the manifest for marketplace review.

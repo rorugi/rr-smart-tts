@@ -2,6 +2,8 @@
 
 These checks require real RemNote clients and installed speech voices. Automated tests mock those APIs and cannot establish audible playback or mobile support.
 
+Keyboard regression (0.4.19): after upgrading and fully reloading RemNote, type 6 and 7 in a document. Enter review and check both replay shortcuts. Edit a Rem during review and try typed-answer mode: digits must remain typeable. Exit review and type them again. Repeat with a document and review in separate panes, and check search/settings text fields. A current-card response alone must not leave bindings active after queue exit. Verify this in the real client; mocked registration tests cannot establish RemNote's key-binding replacement behavior.
+
 1. Load the built plugin in RemNote. Open a document with forward, backward, cloze, and multiline cards. Confirm Front / Back / Stop float at the top right. Click the card and reveal/grade: the controls must stay open. Exit review: they must close. Reload the plugin during review: exactly one control group should return.
 2. In that document's settings, choose Hindi (hi-IN) for Front and English (en-US) for Back. Test both previews and both manual review buttons. Confirm that backward cards retain the same physical-side voices.
 3. Enable question/answer autoplay and both physical-side rules. Each revealed phase should speak once. Grade quickly, move back to a previous card, and leave the queue during speech. No old card should start speaking later.
