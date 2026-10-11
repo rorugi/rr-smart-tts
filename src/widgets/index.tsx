@@ -10,6 +10,7 @@ let detachPosition: (() => void) | undefined;
 import { registerAutoplayMenu } from '../lib/autoplay_menu';
 import { registerReplayShortcuts } from '../lib/shortcuts';
 let detachAutoplayMenu: (() => void) | undefined;
+let detachReplayShortcuts: (() => Promise<void>) | undefined;
 
 async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardId?: string) {
   if (!remId) {
@@ -28,6 +29,7 @@ async function openConfigForContext(plugin: ReactRNPlugin, remId?: string, cardI
 async function onActivate(plugin: ReactRNPlugin) {
   detachPosition?.();
   detachAutoplayMenu?.();
+  await detachReplayShortcuts?.();
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueToolbar);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.FlashcardUnder);
   await plugin.app.unregisterWidget('smart_tts', WidgetLocation.QueueBelowTopBar);
@@ -51,7 +53,7 @@ async function onActivate(plugin: ReactRNPlugin) {
   });
 
   detachAutoplayMenu = await registerAutoplayMenu(plugin);
-  await registerReplayShortcuts(plugin);
+  detachReplayShortcuts = await registerReplayShortcuts(plugin);
 
   await plugin.app.registerCommand({
     id: 'rr-smart-tts-global-settings',
@@ -64,6 +66,10 @@ async function onActivate(plugin: ReactRNPlugin) {
 
 }
 
-async function onDeactivate(_: ReactRNPlugin) { detachPosition?.(); detachPosition = undefined; detachAutoplayMenu?.(); detachAutoplayMenu = undefined; }
+async function onDeactivate(_: ReactRNPlugin) {
+  detachPosition?.(); detachPosition = undefined;
+  detachAutoplayMenu?.(); detachAutoplayMenu = undefined;
+  await detachReplayShortcuts?.(); detachReplayShortcuts = undefined;
+}
 
 declareIndexPlugin(onActivate, onDeactivate);

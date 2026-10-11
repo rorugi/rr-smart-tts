@@ -20,6 +20,8 @@ Module._load = function (name, ...args) {
       return value;
     },
     QueueEvent: events,
+    FocusEvents: { FocusedRemChange: 'focus' },
+    WindowEvents: { FocusedPaneChange: 'pane' },
     StorageEvents: { StorageSyncedChange: 'storage', StorageSessionChange: 'session' },
     useAPIEventListener: (event, key, callback) => {
       React.useEffect(() => {
@@ -66,7 +68,8 @@ function setup() {
     card: { findOne: async () => current },
     rem: { findOne: async (id) => rems[id] },
     richText: { toString: async (nodes) => nodes.map((n) => typeof n === 'string' ? n : n.text || '').join('') },
-    queue: { getCurrentCard: async () => current, hasRevealedAnswer: async () => false },
+    queue: { getCurrentCard: async () => current, hasRevealedAnswer: async () => false, isTypeAnswerEnabled: async () => false },
+    focus: { getFocusedRem: async () => undefined },
     app: { toast: async () => {}, getPlatform: async () => 'app', getOperatingSystem: async () => 'windows' },
     event: {
       addListener: (event, key, callback) => {
@@ -87,11 +90,11 @@ const button = (text) => root.root.findAllByType('button').find((b) => (b.props[
 const scopeSelect = () => root.root.findAllByType('select')[0];
 const rate = () => root.root.findAllByType('input').find((i) => i.props.type === 'range' && i.props.min === '0.5').props.value;
 
-test('replay shortcuts use the current card and stop working on queue exit', async () => {
+test('replay shortcuts use the current card and stop working on queue exit', async t => {
   const h = setup(), commands = new Map();
   const { registerReplayShortcuts } = require('../src/lib/shortcuts');
-  api.app.registerCommand = async command => commands.set(command.keyboardShortcut, command);
-  await registerReplayShortcuts(api);
+  api.app.registerCommand = async command => { if (command.keyboardShortcut) commands.set(command.keyboardShortcut, command); };
+  t.after(await registerReplayShortcuts(api));
   assert.deepEqual([...commands.keys()], ['6', '7']);
   await mount(Toolbar);
   for (const [key, text] of [['6', 'card'], ['7', 'back'], ['6', 'card']]) {
@@ -116,11 +119,53 @@ test('replay shortcuts use the current card and stop working on queue exit', asy
   assert.equal(h.spoken.length, 4);
 });
 
-test('replay shortcuts respect disabled TTS, cloze filtering, and stale card requests', async () => {
+test('replay bindings are absent outside review and while editing or typing answers', async t => {
+  const h = setup(), commands = new Map();
+  h.setCurrent(undefined);
+  api.app.registerCommand = async command => commands.set(command.id, command);
+  const { registerReplayShortcuts } = require('../src/lib/shortcuts');
+  t.after(await registerReplayShortcuts(api));
+  const keys = () => [...commands.values()].map(c => c.keyboardShortcut);
+  assert.deepEqual(keys(), ['', ''], 'ordinary document typing has no digit bindings');
+  h.setCurrent({ _id: 'a' });
+  h.emit(events.QueueEnter); await tick();
+  assert.deepEqual(keys(), ['6', '7']);
+  api.focus.getFocusedRem = async () => h.rems.card;
+  h.emit('focus'); await tick();
+  assert.deepEqual(keys(), ['', ''], 'editing a Rem removes the bindings, not just the action');
+  api.focus.getFocusedRem = async () => undefined;
+  api.queue.isTypeAnswerEnabled = async () => true;
+  h.emit('focus'); await tick();
+  assert.deepEqual(keys(), ['', '']);
+  api.queue.isTypeAnswerEnabled = async () => false;
+  h.emit(events.QueueLoadCard); await tick();
+  assert.deepEqual(keys(), ['6', '7']);
+  h.emit(events.QueueExit); await tick();
+  assert.deepEqual(keys(), ['', ''], 'exit clears keys even if current-card state is stale');
+});
+
+test('late review-context reads cannot re-enable shortcuts after exit or cleanup', async t => {
+  const h = setup(), commands = new Map();
+  api.app.registerCommand = async command => commands.set(command.id, command);
+  const { registerReplayShortcuts } = require('../src/lib/shortcuts');
+  const cleanup = await registerReplayShortcuts(api);
+  t.after(cleanup);
+  const delayed = deferred();
+  api.focus.getFocusedRem = () => delayed.promise;
+  h.emit(events.QueueLoadCard); await tick();
+  h.emit(events.QueueExit);
+  delayed.resolve(undefined); await tick();
+  assert.deepEqual([...commands.values()].map(c => c.keyboardShortcut), ['', '']);
+  await cleanup();
+  h.emit(events.QueueEnter); await tick();
+  assert.deepEqual([...commands.values()].map(c => c.keyboardShortcut), ['', '']);
+});
+
+test('replay shortcuts respect disabled TTS, cloze filtering, and stale card requests', async t => {
   const h = setup(), commands = new Map();
   const { registerReplayShortcuts, REPLAY_REQUEST_KEY } = require('../src/lib/shortcuts');
-  api.app.registerCommand = async command => commands.set(command.keyboardShortcut, command);
-  await registerReplayShortcuts(api);
+  api.app.registerCommand = async command => { if (command.keyboardShortcut) commands.set(command.keyboardShortcut, command); };
+  t.after(await registerReplayShortcuts(api));
   h.values.set('rr-smart-tts:scope:v1:doc', { enabled: false });
   await mount(Toolbar);
   await act(async () => { await commands.get('6').action(); await tick(); });
